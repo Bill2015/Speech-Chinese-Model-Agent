@@ -1,3 +1,51 @@
 {
-    "python.pythonPath": "D:\\ProgramPackage\\Anaconda\\envs\\SpeechAgent\\python.exe"
+    "python.pythonPath": "D:\\ProgramPackage\\Anaconda\\envs\\SpeechAgent\\python.exe",
+    "python.autoComplete.addBrackets": false,    
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": "meta.function-call.generic.python",
+                "settings": {
+                    "foreground": "#f6ff75"
+                }
+            },
+            {
+                "scope": "constant.other.caps.python",
+                "settings": {
+                    "foreground": "#7e75ff"
+                }
+            },
+            {
+                "scope": "string.quoted.docstring.multi.python",
+                "settings": {
+                    "foreground": "#428f1f",
+                }
+            },
+            {
+                "scope": "variable.parameter.function.language.special.self.python",
+                "settings": {
+                    "foreground": "#2a51ff",
+                }
+            }
+            
+        ]
+    },
+    "todohighlight.keywords": [
+        {
+            "text": "≡",
+            "color": "#ff03b8",
+            "backgroundColor": "transparent",
+            "overviewRulerColor": "#ff03b8"
+        },
+        {
+            "text": "Error Message",
+            "color": "#ff382a",
+            "backgroundColor": "transparent",
+            "overviewRulerColor": "#ff03b8"
+        }
+    ],
+    "todohighlight.isEnable": true,
+    "python.testing.pytestArgs": [
+        "."
+    ],
 }
