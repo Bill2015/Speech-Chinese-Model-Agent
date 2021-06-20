@@ -29,9 +29,28 @@ class Condition():
                 return token
         return None
 
+    # 只判斷是否與指令的同義詞一樣
+    def synonymCondition( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
+        """以最簡單比對去做指令字串比對 同義詞
+
+        Args:
+            model (Model): 模型
+            tokens (List[str]): 分割後的自串
+
+        Returns:
+            Command: 回傳出指令
+        """
+        # 取得所有指令
+        for token in tokens:
+            for key in commandMap.keys():
+                if( token in commandMap[ key ].getSynonymNames() ):
+                    return commandMap[ key ]
+        return None
+
+
     # 只判斷是否與指令的相似詞的一樣名稱
     def similarCondition( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
-        """以最簡單比對去做指令字串比對
+        """以最簡單比對去做指令字串比對 相似詞
 
         Args:
             model (Model): 模型

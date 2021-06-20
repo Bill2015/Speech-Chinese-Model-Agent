@@ -56,6 +56,8 @@ class Model():
             commandData = {}
             commandData['名稱']         = command.getChineseName()
             commandData['英文名稱']     = command.getEnglishName()
+            commandData['可量化']       = command.countable()
+            commandData['同義詞']       = command.getSynonymNames()
             commandData['相似詞']       = command.getSimilarNames()
             commandData['狀態']         = command.getStatus()
             data['指令集'].append( commandData )    

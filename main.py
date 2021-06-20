@@ -40,7 +40,7 @@ class SpeechRecognizeAgent():
         print( "(拼音法)最相近的字串: ", command.getChineseName() )
 
 
-        self._model.saveDataToFile()
+     #   self._model.saveDataToFile()
         
 
 if __name__ == "__main__":

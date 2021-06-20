@@ -12,12 +12,18 @@ class Command():
 
         self._chineseName:str           = self._jsonData['名稱']
         self._englishName:str           = self._jsonData['英文名稱']
+        self._synonymWords:List[str]    = self._jsonData['同義詞']
         self._similarWords:List[str]    = self._jsonData['相似詞']
         self._status:Dict[str, str]     = self._jsonData['狀態']
+        self._countable:bool            = self._jsonData['可量化']
         self._romaPinyin:str            = "-".join( lazy_pinyin( self._chineseName ) )# 取得羅馬拼音
         # PPRINT.pprint( self._status )
+
+        self._synonymRomas:List[str]    = [ "-".join( lazy_pinyin( word ) ) for word in self._synonymWords ]
+        print( self._synonymRomas )
         pass
     
+
     # 加入新的相似字
     def addSimilarWord( self, word:str ):
         """加入新的相似字
@@ -37,6 +43,11 @@ class Command():
         """取得指令英文名稱"""
         return self._englishName
   
+    # 取得同義詞
+    def getSynonymNames( self ) -> List[str]:
+        """取得指令取得同義詞"""
+        return self._synonymWords
+
     # 取得相近詞
     def getSimilarNames( self ) -> List[str]:
         """取得指令英文名稱"""
@@ -51,3 +62,8 @@ class Command():
     def getStatus( self ) -> Dict[str, str]:
         """取得狀態表"""
         return self._status
+
+    # 可數的，代表指令可以加數字，以執行多次
+    def countable( self ) -> bool:
+        """可數的，代表指令可以加數字，以執行多次"""
+        return self._countable
