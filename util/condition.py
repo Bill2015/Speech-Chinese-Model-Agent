@@ -1,19 +1,31 @@
 
 
+import abc          as ABC
 from typing         import Dict, List
 
-from pypinyin.core  import lazy_pinyin
-from util.command   import Command
-from util.model     import Model
+from pypinyin       import lazy_pinyin
+from Util.command   import ActionCommand, ActionParameter, Command
+from Util.model     import Model
 
 
 class Condition():
     def __init__(self ) -> None:
         pass
+    
+    @ABC.abstractclassmethod
+    def execute( self, commandMap:Dict[str, Command] , tokens:List[str]  ):
+        return NotImplemented
 
+    @ABC.abstractclassmethod
+    def getConditionName( self ):
+        return NotImplemented
 
-    # 只判斷是否與指令一樣名稱
-    def defaultCondition( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
+# ==================================================================================================
+class SimpleCondition( Condition ):
+    def __init__(self) -> None:
+        pass
+
+    def execute(self, commandMap: Dict[str, Command], tokens: List[str]) -> Command:
         """以最簡單比對去做指令字串比對
 
         Args:
@@ -26,11 +38,18 @@ class Condition():
         # 取得所有指令
         for token in tokens:
             if( token in commandMap.keys() ):
-                return token
+                return commandMap[ token ]
         return None
 
+    def getConditionName(self):
+        return "一般判斷"
+# ==================================================================================================
+class SynonymCondition( Condition ):
+    def __init__(self) -> None:
+        pass
+
     # 只判斷是否與指令的同義詞一樣
-    def synonymCondition( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
+    def execute( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
         """以最簡單比對去做指令字串比對 同義詞
 
         Args:
@@ -43,13 +62,19 @@ class Condition():
         # 取得所有指令
         for token in tokens:
             for key in commandMap.keys():
-                if( token in commandMap[ key ].getSynonymNames() ):
+                if( isinstance(commandMap[ key ], ActionCommand) and token in commandMap[ key ].getSynonymNames() ):
                     return commandMap[ key ]
         return None
-
-
+    
+    def getConditionName(self):
+        return "同義字判斷"
+# ==================================================================================================
+class SimilarCondition( Condition ):
+    def __init__(self) -> None:
+        pass
+    
     # 只判斷是否與指令的相似詞的一樣名稱
-    def similarCondition( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
+    def execute( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Command:
         """以最簡單比對去做指令字串比對 相似詞
 
         Args:
@@ -62,13 +87,19 @@ class Condition():
         # 取得所有指令
         for token in tokens:
             for key in commandMap.keys():
-                if( token in commandMap[ key ].getSimilarNames() ):
+                if( isinstance(commandMap[ key ], ActionCommand) and token in commandMap[ key ].getSimilarNames() ):
                     return commandMap[ key ]
         return None
 
+    def getConditionName(self):
+        return "相似字判斷"
+# ==================================================================================================
+class PinyionCondition( Condition ):
+    def __init__(self) -> None:
+        pass
 
     # 拼音比對
-    def pinyinCondition( self, commandMap:Dict[str, Command], tokens:List[str] ) -> Command:
+    def execute( self, commandMap:Dict[str, Command], tokens:List[str] ) -> Command:
         minimum = 99
         minimumKey = ""
         # 取得所有指令
@@ -77,25 +108,28 @@ class Condition():
             roma = "-".join( lazy_pinyin( token ) )
             # 將每個指令取出
             for key in commandMap.keys():
-                # 取得指令拼音
-                keyRoma = commandMap[ key ].getRomaPinyin()
+                
+                # 只判斷 ActionCommand
+                if( isinstance(  commandMap[ key ], ActionCommand ) ):
+                    # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+                    for commandRoma in [ commandMap[ key ].getRomaPinyin() ] + commandMap[ key ].getSynonymRomas():
 
-                # 假如兩者字串長度差距過大就略過，以節省運算時間
-                if( abs( len( roma ) - len( keyRoma ) ) > 5 ):
-                    continue
+                        # 假如兩者字串長度差距過大就略過，以節省運算時間
+                        if( abs( len( roma ) - len( commandRoma ) ) > 5 ):
+                            continue
 
-                distance = self._levenshteinDistance( roma, keyRoma )
-                print( "字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=token, roma=roma, key=key, roma2=commandMap[ key ].getRomaPinyin(), distance=distance ) )
-                if( distance < minimum ):
-                    minimum = distance
-                    minimumKey = key
-       
+                        distance = self._levenshteinDistance( roma, commandRoma )
+                        print( "字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=token, roma=roma, key=key, roma2=commandRoma, distance=distance ) )
+                        if( distance < minimum ):
+                            minimum = distance
+                            minimumKey = key
+        
         if( minimum > 5 ):
             return None
         else:
             return commandMap[ minimumKey ]
 
-
+    
     # 編輯距離計算
     def _levenshteinDistance(self, str1:str, str2:str) -> int:
         """計算兩者字串的編輯距離
@@ -113,3 +147,6 @@ class Condition():
                 d = 0 if str1[ i - 1 ] == str2[ j - 1 ] else 1
                 matrix[i][j] = min( matrix[ i - 1 ][ j ] + 1, matrix[ i ][ j- 1 ] + 1, matrix[ i - 1 ][ j - 1 ] + d)
         return matrix[ len(str1) ][ len(str2) ]
+
+    def getConditionName(self):
+        return "拼音判斷"

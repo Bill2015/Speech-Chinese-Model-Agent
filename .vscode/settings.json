@@ -1,5 +1,9 @@
 {
-    "python.pythonPath": "D:\\ProgramPackage\\Anaconda\\envs\\SpeechAgent\\python.exe",
+    "python.terminal.activateEnvironment": false,
+    "python.pythonPath": "D:\\ProgramPackage\\Anaconda\\envs\\speechagent\\python.exe",
+    "python.autoComplete.extraPaths": [
+        "D:/ProgramPackage/Anaconda/envs/speechagent/**",
+        "D:/ProgramPackage/Anaconda/envs/speechagent/include/**"],
     "python.autoComplete.addBrackets": false,    
     "editor.tokenColorCustomizations": {
         "textMateRules": [
@@ -47,5 +51,12 @@
     "todohighlight.isEnable": true,
     "python.testing.pytestArgs": [
         "."
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.analysis.extraPaths": [
+        "D:/ProgramPackage/Anaconda/envs/speechagent/**",
+        "D:/ProgramPackage/Anaconda/envs/speechagent/include/**"
     ],
 }
