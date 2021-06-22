@@ -1,23 +1,47 @@
-import abc                      as ABC
 from typing                     import List, Tuple
 from PyQt5                      import QtCore, QtWidgets, uic
 from PyQt5.QtGui                import QPalette, QPixmap
 from PyQt5.QtWidgets            import (QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
 from Interface.util             import Utility
-
+import random                   as RANDOM
+import abc                      as ABC
 
 # ========================================================================
-class EntityLabel( QLabel ):
-    IMAGE_PATH_PLAYER = "player-stand.png"
-    IMAGE_PATH_SLIME  = "enemy-slime.png"
+class GameObject( QLabel ):
     def __init__( self, iniX=0, iniY=0, imagePath="" ):
         QLabel.__init__( self )
-        self._health = 100
         self._preX:int   = iniX
         self._preY:int   = iniY 
         self._posX:int   = iniX 
         self._posY:int   = iniY
         self._initialImage( imagePath )
+
+    def _initialImage( self, imagePath ):
+        self.setScaledContents( True )
+        pixmap = QPixmap()
+        if( pixmap.load( Utility.IMAGE_RESOURCE_PATH + imagePath )):
+            pixmap.scaled( self.size(),  QtCore.Qt.KeepAspectRatio)      
+            self.setPixmap( pixmap )
+        else:
+            print( "圖片讀取錯誤！" )
+# ========================================================================
+class StaticObject( GameObject ):
+    IMAGE_PATH_STONE    = "stone-{index}.png"
+    def __init__( self, iniX=0, iniY=0, imagePath="" ):
+        GameObject.__init__( self, iniX, iniY, imagePath )
+
+# ========================================================================
+class StoneObject( StaticObject ):
+    def __init__( self, iniX=0, iniY=0 ):
+        StaticObject.__init__( self, iniX, iniY, StaticObject.IMAGE_PATH_STONE.format( index=RANDOM.randint(0, 8) ) )
+
+# ========================================================================
+class EntityLabel( GameObject ):
+    IMAGE_PATH_PLAYER = "player-stand.png"
+    IMAGE_PATH_SLIME  = "enemy-slime.png"
+    def __init__( self, iniX=0, iniY=0, imagePath="" ):
+        GameObject.__init__( self, iniX, iniY, imagePath )
+        self._health = 100
 
     def moveTo( self, x, y ):
         self._preX   =   self._posX
@@ -38,14 +62,7 @@ class EntityLabel( QLabel ):
     def getPrePosition( self ) -> Tuple[int, int]:
         return (self._preX, self._preY)
 
-    def _initialImage( self, imagePath ):
-        self.setScaledContents( True )
-        pixmap = QPixmap()
-        if( pixmap.load( Utility.IMAGE_RESOURCE_PATH + imagePath )):
-            pixmap.scaled( self.size(),  QtCore.Qt.KeepAspectRatio)      
-            self.setPixmap( pixmap )
-        else:
-            print( "圖片讀取錯誤！" )
+
 
     @ABC.abstractclassmethod
     def updateAI( self, ):
@@ -54,7 +71,9 @@ class EntityLabel( QLabel ):
     def updatePosition( self, maze:List[List[QFrame]]  ):
         if( (self._posX != self._preX) or (self._posY != self._preY) ):
             maze[ self._preX ][ self._preY ].removeContent()
-            maze[ self._posX ][ self._posY ].addEntity( self )
+            maze[ self._posX ][ self._posY ].addObject( self )
+            self._preX   =   self._posX
+            self._preY   =   self._posY 
 
 # ========================================================================
 class PlayerLabel( EntityLabel ):

@@ -1,12 +1,12 @@
 
-from math import fabs
 from PyQt5                      import QtCore, QtWidgets, uic
 from PyQt5.QtGui                import QPalette, QPixmap
 from PyQt5.QtWidgets            import (QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
 
 import os                       as OS
+import random                   as RANDOM
 from Interface.util             import Utility
-from Interface.entity           import EnemyLabel, EntityLabel, PlayerLabel
+from Interface.entity           import EnemyLabel, EntityLabel, PlayerLabel, StoneObject
 
 
 
@@ -25,6 +25,7 @@ class GameBox(QFrame):
         
         self._gameLayout = QHBoxLayout()
         self._gameLayout.setContentsMargins(0, 0, 0, 0)
+        self._gameLayout.setSpacing( 0 )
         self.setLayout( self._gameLayout )
 
         self._isObstruction = False
@@ -37,23 +38,21 @@ class GameBox(QFrame):
         self._isObstruction = False
         self._playerOn      = False
         self._emenyOn       = False
-        self.setStyleSheet( "background-color: green;" )
-        for child in self._gameLayout.children():
-            child.setParent( None )
-        self._gameLayout.children().clear()
+        #self.setStyleSheet( "background-color: rgb(198, 255, 198);;" )
         
 
-    def addEntity( self, entity:EntityLabel ):
-        self.setStyleSheet( "background-color: red;" )
+    def addObject( self, entity:EntityLabel ):
+        #self.setStyleSheet( "background-color: red;" )
         self._gameLayout.addWidget( entity )
-
         self._isObstruction = True
         if( isinstance( entity, PlayerLabel ) ):
             self._playerOn = True
         elif( isinstance( entity, EnemyLabel ) ):
             self._emenyOn = True
+      #  elif( isinstance( entity, StoneObject ) ):
+       #     self.setStyleSheet( "background-color: rgb(167, 167, 175);" )
 
-    def getEntity( self ) -> EntityLabel:
+    def getObject( self ) -> EntityLabel:
         if( len( self._gameLayout.children() ) > 1 ):
             return self._gameLayout.children()[0]
         return None

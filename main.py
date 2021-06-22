@@ -2,6 +2,7 @@ from typing         import List
 from PyQt5          import QtWidgets
 import socket       as SOCKET   ## socket連線模組 ##
 
+import json.encoder
 import threading    as THREAD   ## 多執行緒模組 ##
 import os           as OS       ## 調用操作系統命令，來達成建立文件，刪除文件，查詢文件的模組 ##
 import sys          as SYS
@@ -72,11 +73,11 @@ class SpeechRecognizeAgent():
         self._status                        = "隨時"
         
 
-      
+    #    self.doAction()
     
 
     def doAction( self ):
-        textSpeech = self._sensor.speechToText()
+        textSpeech = "張壹智要公雞"
         print( textSpeech )
     
 

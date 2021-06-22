@@ -3,12 +3,12 @@
 from typing                 import List, Set, Tuple
 from Interface.gameBox      import GameBox
 from Interface.util         import Utility
-import pprint               as PPRINT
 import random               as RANDOM
 
 
 class AStarPathFinding():
-    MAX_TRY_NODE = (Utility.GAME_BOX_GRID[0] * Utility.GAME_BOX_GRID[1] / 3)
+    MAX_TRY_NODE = (Utility.GAME_BOX_GRID[0] * Utility.GAME_BOX_GRID[1] )
+    
     class Node():
         """A node class for A* Pathfinding"""
 
@@ -33,7 +33,7 @@ class AStarPathFinding():
         pass
 
     def _findNearEnd( self, maze: List[List[GameBox]], targetPos:Tuple[int, int]  ):
-        flagList:List[List[bool]]       = [[False for x in range(Utility.GAME_BOX_GRID[0])] for y in range(Utility.GAME_BOX_GRID[1])]
+        flagList:List[List[bool]]       = [[False for x in range(Utility.GAME_BOX_GRID[1])] for y in range(Utility.GAME_BOX_GRID[0])]
         walkStack:List[(int, int)]      = []  
         walkStack.append( targetPos )
         currentPos = walkStack[0]
@@ -45,7 +45,7 @@ class AStarPathFinding():
             walkStack.pop( 0 )
             flagList[ currentPos[0] ][ currentPos[1] ]  = True
 
-            for direct in RANDOM.sample([(0, -1), (0, 1), (-1, 0), (1, 0)], 4): # Adjacent squares
+            for direct in RANDOM.sample( Utility.MOVE_DIRECTION, 4 ): # Adjacent squares
 
                 newPos = (currentPos[0] + direct[0], currentPos[1] + direct[1])
                 # Make sure within range
@@ -56,7 +56,7 @@ class AStarPathFinding():
                     if( maze[ newPos[0] ][ newPos[1] ].isObstruction() == False ):
                         if( resultPos == None ):
                             resultPos = newPos
-                    else:
+                    elif( maze[ newPos[0] ][ newPos[1] ].isEnemyOn() == True ):
                         walkStack.append( newPos )
 
         return resultPos, flagList
@@ -73,10 +73,10 @@ class AStarPathFinding():
         startNode               = AStarPathFinding.Node(None, startPos )
         newEndPos, flagList     = self._findNearEnd( maze=maze, targetPos=endPos )
         endNode                 = AStarPathFinding.Node(None,  newEndPos )
-        print( "新的結束點：" + str( newEndPos ) )
 
+        # 假如是自己
         if( flagList[ startPos[0] ][ startPos[1] ] == True ):
-            return [0]
+            return None
 
 
         openList.append( startNode )
@@ -86,9 +86,10 @@ class AStarPathFinding():
         # 計算到找到路近
         while len( openList ) > 0:
 
+            # 搜尋過久，跳出
             tryCount += 1
             if( tryCount > AStarPathFinding.MAX_TRY_NODE ):
-                return [0]
+                return None
 
             # 取得現在節點
             currentNode = openList[0]
@@ -115,7 +116,7 @@ class AStarPathFinding():
 
             # Generate children
             children:List[AStarPathFinding.Node]  = []
-            for newPosition in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
+            for newPosition in Utility.MOVE_DIRECTION: # Adjacent squares
 
                 # Get node position
                 nodePosition = (currentNode.position[0] + newPosition[0], currentNode.position[1] + newPosition[1])
