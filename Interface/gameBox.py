@@ -6,7 +6,6 @@ from PyQt5.QtWidgets            import (QCheckBox, QDialog, QFileDialog, QFrame,
 import os                       as OS
 import random                   as RANDOM
 from Interface.util             import Utility
-from Interface.entity           import EnemyLabel, EntityLabel, PlayerLabel, StoneObject
 
 
 
@@ -40,11 +39,12 @@ class GameBox(QFrame):
         self._emenyOn       = False
         #self.setStyleSheet( "background-color: rgb(198, 255, 198);;" )
         
-
-    def addObject( self, entity:EntityLabel ):
+    def addObject( self, entity ):
         #self.setStyleSheet( "background-color: red;" )
         self._gameLayout.addWidget( entity )
         self._isObstruction = True
+
+        from Interface.entity           import EnemyLabel, PlayerLabel
         if( isinstance( entity, PlayerLabel ) ):
             self._playerOn = True
         elif( isinstance( entity, EnemyLabel ) ):
@@ -52,7 +52,7 @@ class GameBox(QFrame):
       #  elif( isinstance( entity, StoneObject ) ):
        #     self.setStyleSheet( "background-color: rgb(167, 167, 175);" )
 
-    def getObject( self ) -> EntityLabel:
+    def getObject( self ):
         if( len( self._gameLayout.children() ) > 1 ):
             return self._gameLayout.children()[0]
         return None

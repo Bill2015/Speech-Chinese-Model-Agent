@@ -9,23 +9,14 @@ import sys          as SYS
 import time         as TIME
 import pprint       as PPRINT
 import jieba_fast   as JIEBA
+from pypinyin.core import lazy_pinyin
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
 from Util.command           import Command
-from Util.condition         import Condition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition
-from Util.model             import Model   # 用來 Print 出好看得 Map
+from Util.condition         import Condition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition, TranslateCondition
+from Util.model             import Model  
 from Interface.mainGame     import GameMainUi
-
-
-class FileConfig():
-    CONFIG = None
-    def __init__(self) -> None:
-        pass
-
-    def __init__() -> None:
-        with open('dict/config.txt', 'r+') as file:
-            FileConfig.CONFIG = eval( file.read() )  # 讀取的str轉換為字典
-        pass
+from google_trans_new       import google_translator  
 
 class SpeechSensor():
     def __init__(self) -> None:
@@ -68,37 +59,62 @@ class SpeechSensor():
 class SpeechRecognizeAgent():
     def __init__(self) -> None:
         self._model                         = Model()
-        self._conditions:List[Condition]    = [SimpleCondition(), SynonymCondition(), SimilarCondition(), PinyionCondition()]
+        self._conditions:List[Condition]    = [SimpleCondition(), SynonymCondition(), SimilarCondition(), PinyionCondition(), TranslateCondition()]
         self._sensor                        = SpeechSensor()
         self._status                        = "隨時"
         
 
-    #    self.doAction()
+        self.doAction()
     
 
     def doAction( self ):
-        textSpeech = "張壹智要公雞"
+        textSpeech = "張壹智要進攻"
         print( textSpeech )
     
 
         jiebaText = JIEBA.lcut(textSpeech, cut_all=False, HMM=True)
         print( "結疤分詞：", jiebaText )
 
+        # 初始化 Command
+        command = None
+
+        # 每種判斷取出
         for condition in self._conditions:
-            command = condition.execute( self._model.getCommandsByStatus( self._status ),  jiebaText )
+
+
+            # 拼音判斷
+            if( isinstance(condition, PinyionCondition) ):
+                pinyinToken = PinyionCondition.GeneratePinyinList( jiebaText )
+                command = condition.execute( self._model.getCommandsByStatus( self._status ), jiebaText,  pinyinToken )
+
+            # 翻譯判斷
+            elif( isinstance(condition, TranslateCondition) ):
+                englishToken = TranslateCondition.GenerateEnglishList( jiebaText )
+                command = condition.execute( self._model.getCommandsByStatus( self._status ), jiebaText,  englishToken )
+            
+            # 其他
+            else:
+                command = condition.execute( self._model.getCommandsByStatus( self._status ),  jiebaText )
+            
+            # 有找到指令
             if( command != None ):
-                print( "( " + condition.getConditionName() + " )最相近的字串: ", command.getChineseName() )
+                print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
                 break
+    
     #    self._model.saveDataToFile()
         
 
 if __name__ == "__main__":
     def run_app():
-        app         = QtWidgets.QApplication( SYS.argv )
+
+        # Initial
+
+
+      #  app         = QtWidgets.QApplication( SYS.argv )
         agent       = SpeechRecognizeAgent()
-        window      = GameMainUi()
-        window.show()
-        app.exec_()
+      #  window      = GameMainUi()
+      #  window.show()
+      #  app.exec_()
 
     try:
         run_app()

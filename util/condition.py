@@ -1,11 +1,11 @@
 
 
-import abc          as ABC
-from typing         import Dict, List
+import abc                  as ABC
+from typing                 import Dict, List
 
-from pypinyin       import lazy_pinyin
-from Util.command   import ActionCommand, ActionParameter, Command
-from Util.model     import Model
+from pypinyin               import lazy_pinyin
+from Util.command           import ActionCommand, ActionParameter, Command
+from google_trans_new       import google_translator  
 
 
 class Condition():
@@ -13,7 +13,7 @@ class Condition():
         pass
     
     @ABC.abstractclassmethod
-    def execute( self, commandMap:Dict[str, Command] , tokens:List[str]  ):
+    def execute( self, commandMap:Dict[str, Command] , token:str  ):
         return NotImplemented
 
     @ABC.abstractclassmethod
@@ -98,14 +98,22 @@ class PinyionCondition( Condition ):
     def __init__(self) -> None:
         pass
 
-    # 拼音比對
-    def execute( self, commandMap:Dict[str, Command], tokens:List[str] ) -> Command:
-        minimum = 99
-        minimumKey = ""
-        # 取得所有指令
+    def GeneratePinyinList( tokens: List[str] ) -> List[str]:
+        pinyinList:List[str]       = []
         for token in tokens:
-            # 取得目標字串拼音
-            roma = "-".join( lazy_pinyin( token ) )
+            pinyinList.append( "-".join( lazy_pinyin( token ) ) )
+        return pinyinList
+
+    def GeneratePinyin( token:str ):
+        return  "-".join( lazy_pinyin( token ) )
+
+    # 拼音比對
+    def execute( self, commandMap:Dict[str, Command], originToken:List[str], pinyinTokens:List[str] ) -> Command:
+        maximumRate = 0
+        minimumKey = ""
+        # 拼音取出
+        for i, pinToken in enumerate(pinyinTokens):
+            pinyinLength = len( pinToken )
             # 將每個指令取出
             for key in commandMap.keys():
                 
@@ -113,18 +121,18 @@ class PinyionCondition( Condition ):
                 if( isinstance(  commandMap[ key ], ActionCommand ) ):
                     # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
                     for commandRoma in [ commandMap[ key ].getRomaPinyin() ] + commandMap[ key ].getSynonymRomas():
-
+                        commandLength = len( commandRoma )
                         # 假如兩者字串長度差距過大就略過，以節省運算時間
-                        if( abs( len( roma ) - len( commandRoma ) ) > 5 ):
+                        if( abs( pinyinLength - commandLength ) > 5 ):
                             continue
 
-                        distance = self._levenshteinDistance( roma, commandRoma )
-                        print( "字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=token, roma=roma, key=key, roma2=commandRoma, distance=distance ) )
-                        if( distance < minimum ):
-                            minimum = distance
+                        distance = 1.0 - float(self._levenshteinDistance( pinToken, commandRoma )) / max(pinyinLength, commandLength)
+                        print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken[i], roma=pinToken, key=key, roma2=commandRoma, distance=distance ) )
+                        if( distance > maximumRate ):
+                            maximumRate = distance
                             minimumKey = key
-        
-        if( minimum > 5 ):
+            
+        if( maximumRate < 0.75 ):
             return None
         else:
             return commandMap[ minimumKey ]
@@ -144,9 +152,54 @@ class PinyionCondition( Condition ):
         matrix = [[ i + j for j in range(len(str2) + 1)] for i in range(len(str1) + 1)]
         for i in range(1, len(str1) + 1):
             for j in range(1, len(str2) + 1):
-                d = 0 if str1[ i - 1 ] == str2[ j - 1 ] else 1
+
+                if str1[ i - 1 ] == str2[ j - 1 ]:
+                    d = 0
+                else:
+                    d = 1
+                    
                 matrix[i][j] = min( matrix[ i - 1 ][ j ] + 1, matrix[ i ][ j- 1 ] + 1, matrix[ i - 1 ][ j - 1 ] + d)
         return matrix[ len(str1) ][ len(str2) ]
 
     def getConditionName(self):
         return "拼音判斷"
+
+# ==================================================================================================
+class TranslateCondition( Condition ):
+    TRANSLATOR = google_translator()  
+    def __init__(self) -> None:
+        pass
+
+    def GenerateEnglishList( tokens: List[str] ) -> List[str]:
+        engList:List[str]       = []
+        for token in tokens:
+            engList.append( TranslateCondition.TRANSLATOR.translate( token ).lower().replace(" ", "") )
+        return engList
+
+    def GenerateEnglish( token:str ):
+        return TranslateCondition.TRANSLATOR.translate( token )
+
+    def execute(self, commandMap: Dict[str, Command], originToken:List[str], engTokens: List[str]) -> Command:
+        """經由 Google 翻譯去判斷兩者詞彙是否接近
+        Args:
+            commandMap (Dict[str, Command]): 指令表
+            engTokens (List[str]): 英文字串 List
+        Returns:
+            Command: 指令
+        """
+        for i, engToken in enumerate( engTokens ):
+            # 將每個指令取出
+            for key in commandMap.keys():
+                # 只判斷 ActionCommand
+                if( isinstance(  commandMap[ key ], ActionCommand ) ):
+                    # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+                    for engCommand in commandMap[ key ].getEnglishName():
+
+                        print( "(翻譯判斷) 字串A：{token}({eng}), 字串B:{key}({eng2})".format( token=originToken[i], eng=engToken, key=commandMap[ key ].getChineseName(), eng2=engCommand ) )
+                        # 判斷是否英文字一樣
+                        if( engCommand.lower().strip() == engToken ):
+                            return commandMap[ key ]
+        return None
+
+    def getConditionName(self):
+        return "翻譯判斷"

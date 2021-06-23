@@ -3,17 +3,19 @@
 ## 羅馬拼音模組 ##
 from typing import Dict, List
 from pypinyin import lazy_pinyin
+from google_trans_new       import google_translator  
 
 
 # 指令
 class Command():
     def __init__(self,  data:dict ) -> None:
-        self._jsonData          = data
+        self._jsonData                  = data
         self._chineseName:str           = self._jsonData['名稱']
-        self._englishName:str           = self._jsonData['英文名稱']
+        self._englishName:List[str]     = self._jsonData['英文名稱']
         self._countable:bool            = self._jsonData['可量化']
         self._status:Dict[str, str]     = self._jsonData['狀態']
         self._romaPinyin:str            = "-".join( lazy_pinyin( self._chineseName ) )# 取得羅馬拼音
+
         pass
     
     # 取得中文名稱
@@ -22,7 +24,7 @@ class Command():
         return self._chineseName
 
     # 取得英文名稱
-    def getEnglishName( self ) -> str:
+    def getEnglishName( self ) -> List[str]:
         """取得指令英文名稱"""
         return self._englishName
 
@@ -40,6 +42,9 @@ class Command():
     def getRomaPinyin( self ) -> str:
         """取得羅馬拼音"""
         return self._romaPinyin
+
+        
+
 
 # 指令類別，用來存放每一個指令的資訊
 class ActionCommand(Command):

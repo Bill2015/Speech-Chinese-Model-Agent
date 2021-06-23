@@ -74,7 +74,7 @@ class GameMainUi(QtWidgets.QMainWindow):
             i += 1
         # ----------------------------
         i = 0
-        while i < 1:
+        while i < 10:
             dx, dy = Utility.generatePosition()
             
             if( self._grid[ dx ][ dy ].isObstruction() == False ):
@@ -101,6 +101,8 @@ class GameMainUi(QtWidgets.QMainWindow):
                 path = entity.pathFinding().find( self._grid, entity.getPosition(), self._playerLabel.getPosition() )
                 if( path != None and len( path ) >= 2 ):
                     entity.moveTo( path[1][0], path[1][1] )
+                else:
+                    pass
 
             entity.updateAI( self._grid )
 
