@@ -80,9 +80,8 @@ class Model():
                 # command.__class__ = ActionCommand
                 data = {}
                 data['名稱']         = command.getChineseName()
-                data['英文名稱']     = command.getEnglishName()
                 data['可量化']       = command.countable()
-                data['同義詞']       = command.getSynonymNames()
+                data['同義詞']       = command.getSynonymDict()
                 data['相似詞']       = command.getSimilarNames()
                 data['狀態']         = command.getStatus()
                 commandData['指令集'].append( data )    
@@ -90,7 +89,6 @@ class Model():
             elif( isinstance( command, ActionParameter ) ):
                 data = {}
                 data['名稱']         = command.getChineseName()
-                data['英文名稱']     = command.getEnglishName()
                 data['可量化']       = command.countable()
                 data['狀態']         = command.getStatus()
                 data['修正詞']       = command.getCorrectWords()

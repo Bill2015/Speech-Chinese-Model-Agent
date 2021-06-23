@@ -1,7 +1,7 @@
 
 
 ## 羅馬拼音模組 ##
-from typing import Dict, List
+from typing import Dict, List, Set
 from pypinyin import lazy_pinyin
 from google_trans_new       import google_translator  
 
@@ -11,7 +11,7 @@ class Command():
     def __init__(self,  data:dict ) -> None:
         self._jsonData                  = data
         self._chineseName:str           = self._jsonData['名稱']
-        self._englishName:List[str]     = self._jsonData['英文名稱']
+        self._englishName:Set[str]      = set()
         self._countable:bool            = self._jsonData['可量化']
         self._status:Dict[str, str]     = self._jsonData['狀態']
         self._romaPinyin:str            = "-".join( lazy_pinyin( self._chineseName ) )# 取得羅馬拼音
@@ -24,7 +24,7 @@ class Command():
         return self._chineseName
 
     # 取得英文名稱
-    def getEnglishName( self ) -> List[str]:
+    def getEnglishName( self ) -> Set[str]:
         """取得指令英文名稱"""
         return self._englishName
 
@@ -48,12 +48,31 @@ class Command():
 
 # 指令類別，用來存放每一個指令的資訊
 class ActionCommand(Command):
+    TRANSLATOR = google_translator()  
     def __init__(self, data:dict ) -> None:
         Command.__init__( self, data )
    
-        self._synonymWords:List[str]    = self._jsonData['同義詞']
+        self._synonymDicts:dict         = self._jsonData['同義詞']
         self._similarWords:List[str]    = self._jsonData['相似詞']
+        self._synonymWords:List[str]    = []
+
         # PPRINT.pprint( self._status )
+        # 新增原有的中文翻譯字
+        if( self._chineseName not in self._synonymDicts.keys() ):
+            translateWord = ActionCommand.TRANSLATOR.translate( self._chineseName ).lower().strip()
+            self._synonymDicts[ self._chineseName ] = translateWord
+
+        # 取出每個同義字
+        for synKey in self._synonymDicts.keys():
+            self._synonymWords.append( synKey )
+            # 判斷是否還未幫同義字翻譯
+            if( self._synonymDicts[ synKey ] == "" ):
+                translateWord = ActionCommand.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
+                self._synonymDicts[ synKey ] = translateWord
+                self._englishName.add( translateWord )
+            # 已經有翻譯了
+            else:
+                self._englishName.add( self._synonymDicts[ synKey ] )
 
         self._synonymRomas:List[str]    = [ "-".join( lazy_pinyin( word ) ) for word in self._synonymWords ]
         pass
@@ -67,6 +86,16 @@ class ActionCommand(Command):
         """
         self._similarWords.append( word )
 
+    # 加入新的同義字
+    def addSynonymWord( self, word:str ):
+        """加入新的相似字
+
+        Args:
+            word (str): 欲加入的字
+        """
+        translateWord = ActionCommand.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
+        self._synonymDicts[ word ] = translateWord
+        self._englishName.add( translateWord )
    
     # 取得同義詞
     def getSynonymNames( self ) -> List[str]:
@@ -83,7 +112,10 @@ class ActionCommand(Command):
         """取得指令英文名稱"""
         return self._similarWords
 
-
+    # 取得相近詞
+    def getSynonymDict( self ) -> dict:
+        """取得指令英文名稱"""
+        return self._synonymDicts
 
 
 

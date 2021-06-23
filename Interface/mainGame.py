@@ -67,14 +67,14 @@ class GameMainUi(QtWidgets.QMainWindow):
         # ----------------------------
         i = 0
         while i < 5:
-            for pos in Utility.geteratePositionList( 3, 6 ):
+            for pos in Utility.geteratePositionList( 2, 3 ):
                 if( self._grid[ pos[0] ][ pos[1] ].isObstruction() == False ):
                     stone = StoneObject(pos[0], pos[1] )
                     self._grid[ pos[0] ][ pos[1] ].addObject( stone )
             i += 1
         # ----------------------------
         i = 0
-        while i < 10:
+        while i < 5:
             dx, dy = Utility.generatePosition()
             
             if( self._grid[ dx ][ dy ].isObstruction() == False ):

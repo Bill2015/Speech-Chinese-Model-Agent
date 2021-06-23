@@ -12,11 +12,13 @@ import jieba_fast   as JIEBA
 from pypinyin.core import lazy_pinyin
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
-from Util.command           import Command
+from Util.command           import ActionCommand, Command
 from Util.condition         import Condition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition, TranslateCondition
 from Util.model             import Model  
 from Interface.mainGame     import GameMainUi
 from google_trans_new       import google_translator  
+
+from nltk.corpus import wordnet
 
 class SpeechSensor():
     def __init__(self) -> None:
@@ -68,12 +70,12 @@ class SpeechRecognizeAgent():
     
 
     def doAction( self ):
-        textSpeech = "張壹智要進攻"
+        textSpeech = "張壹智要打擊"
         print( textSpeech )
     
 
-        jiebaText = JIEBA.lcut(textSpeech, cut_all=False, HMM=True)
-        print( "結疤分詞：", jiebaText )
+        tokenText = JIEBA.lcut(textSpeech, cut_all=False, HMM=True)
+        print( "結疤分詞：", tokenText )
 
         # 初始化 Command
         command = None
@@ -81,40 +83,45 @@ class SpeechRecognizeAgent():
         # 每種判斷取出
         for condition in self._conditions:
 
-
             # 拼音判斷
             if( isinstance(condition, PinyionCondition) ):
-                pinyinToken = PinyionCondition.GeneratePinyinList( jiebaText )
-                command = condition.execute( self._model.getCommandsByStatus( self._status ), jiebaText,  pinyinToken )
+                pinyinToken = PinyionCondition.GeneratePinyinList( tokenText )
+                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenText,  pinyinToken )
+                # 加入至相似詞裡
+                if( isinstance( command, ActionCommand ) ):
+                    command.addSimilarWord( tokenText[index] )
 
             # 翻譯判斷
             elif( isinstance(condition, TranslateCondition) ):
-                englishToken = TranslateCondition.GenerateEnglishList( jiebaText )
-                command = condition.execute( self._model.getCommandsByStatus( self._status ), jiebaText,  englishToken )
-            
+                englishToken = TranslateCondition.GenerateEnglishList( tokenText )
+                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenText,  englishToken )
+                # 加入至同義詞裡
+                if( isinstance( command, ActionCommand ) ):
+                    command.addSynonymWord( tokenText[index] )
             # 其他
             else:
-                command = condition.execute( self._model.getCommandsByStatus( self._status ),  jiebaText )
+                _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenText )
             
             # 有找到指令
             if( command != None ):
                 print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
                 break
     
-    #    self._model.saveDataToFile()
+        self._model.saveDataToFile()
         
 
 if __name__ == "__main__":
     def run_app():
 
+       # for synset in WORD_NET.synsets("car"):
+       #     print(synset.definition())
         # Initial
 
-
-      #  app         = QtWidgets.QApplication( SYS.argv )
-        agent       = SpeechRecognizeAgent()
-      #  window      = GameMainUi()
-      #  window.show()
-      #  app.exec_()
+      #  agent       = SpeechRecognizeAgent()
+        app         = QtWidgets.QApplication( SYS.argv )
+        window      = GameMainUi()
+        window.show()
+        app.exec_()
 
     try:
         run_app()

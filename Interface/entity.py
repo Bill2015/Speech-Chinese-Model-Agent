@@ -1,28 +1,35 @@
+from math import fabs
 from Interface.gameBox import GameBox
 from typing                     import List, Tuple
 from PyQt5                      import QtCore, QtWidgets, uic
-from PyQt5.QtGui                import QPalette, QPixmap
-from PyQt5.QtWidgets            import (QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
+from PyQt5.QtGui                import QCursor, QPalette, QPixmap
+from PyQt5.QtWidgets            import (QAction, QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QMenu, QProgressBar, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QVBoxLayout, QWidget)
 from Interface.util             import Utility
 import random                   as RANDOM
 import abc                      as ABC
 
 # ========================================================================
-class GameObject( QLabel ):
+class GameObject( QWidget ):
     def __init__( self, iniX=0, iniY=0, imagePath="" ):
-        QLabel.__init__( self )
-        self._preX:int   = iniX
-        self._preY:int   = iniY 
-        self._posX:int   = iniX 
-        self._posY:int   = iniY
+        QWidget.__init__( self )
+        self._icon:QLabel   = QLabel()
+        self._preX:int      = iniX
+        self._preY:int      = iniY 
+        self._posX:int      = iniX 
+        self._posY:int      = iniY
         self._initialImage( imagePath )
+        self._vlayout       = QVBoxLayout()
+        self._vlayout.setContentsMargins( 3, 5, 3, 0 )
+        self._vlayout.setSpacing( 0 )
+        self.setLayout( self._vlayout )
+        self._vlayout.addWidget( self._icon )
 
     def _initialImage( self, imagePath ):
-        self.setScaledContents( True )
+        self._icon.setScaledContents( True )
         pixmap = QPixmap()
         if( pixmap.load( Utility.IMAGE_RESOURCE_PATH + imagePath )):
             pixmap.scaled( self.size(),  QtCore.Qt.KeepAspectRatio)      
-            self.setPixmap( pixmap )
+            self._icon.setPixmap( pixmap )
         else:
             print( "圖片讀取錯誤！" )
 # ========================================================================
@@ -97,15 +104,36 @@ class EnemyLabel( EntityLabel ):
     def __init__(self, iniX=0, iniY=0, imagePath="" ):
         EntityLabel.__init__( self, iniX, iniY, imagePath  )
         from Interface.Ai import AStarPathFinding 
-        self._pathFindingAI = AStarPathFinding()
-
+        self._pathFindingAI     = AStarPathFinding()
+        self._healthBar         = QProgressBar()
+        self._healthBar.setValue( 80 )
+        self._healthBar.setMaximum( 100 )
+        self._healthBar.setMaximumHeight( 3 )
+        self._healthBar.setSizePolicy( QSizePolicy.Preferred, QSizePolicy.Maximum )
+        self._healthBar.setAlignment( QtCore.Qt.AlignmentFlag.AlignCenter )
+        styleText = """QProgressBar#healthBar{
+                        background-color: rgb(191, 255, 187);
+                        border-style: none;
+                        border-color: rgb(131, 131, 131);
+                        border-radius: 5px;
+                    }
+                    QProgressBar#healthBar::chunk:horizontal {
+                        background: red;
+                        border-style: none;
+                        border-color: white;
+                        border-radius: 5px;
+                    }"""
+        self._healthBar.setObjectName( "healthBar" )
+        self._healthBar.setStyleSheet( styleText )
+        self._vlayout.addWidget( self._healthBar )
+        self._vlayout.addWidget( self._icon )
 
     def pathFinding( self ):
         return self._pathFindingAI
     
     def updateAI(self, maze:List[List[GameBox]]):
         return super().updateAI( maze=maze )
-        
+
 # ========================================================================
 class SlimeLabel( EnemyLabel ):
     def __init__(self, iniX=0, iniY=0):
