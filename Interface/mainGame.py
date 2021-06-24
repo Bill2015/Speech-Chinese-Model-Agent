@@ -116,7 +116,14 @@ class GameMainUi(QtWidgets.QMainWindow):
 
 
     def doCommand( self, commad:str ):
-        
+        if( commad == "往上" ):
+            self.playerMove( GameMainUi.PLAYER_MOVE_UP )
+        elif( commad == "往下" ):
+            self.playerMove( GameMainUi.PLAYER_MOVE_DWON )
+        elif( commad == "往左" ):
+            self.playerMove( GameMainUi.PLAYER_MOVE_LEFT )
+        elif( commad == "往右" ):
+            self.playerMove( GameMainUi.PLAYER_MOVE_RIGHT )
         pass
 
 

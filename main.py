@@ -103,6 +103,8 @@ class SpeechRecognizeAgent(THREAD.Thread):
         # 初始化 Command
         command     = None
         parameter   = None
+        index       = -1
+        commandList = List[Command]
         # ========================================================================================================
         # 每種判斷取出
         for condition in self._conditions:
@@ -132,7 +134,7 @@ class SpeechRecognizeAgent(THREAD.Thread):
             # ------------------------------------------------------
             # 其他
             else:
-                _, command = condition.execute( statusCommand,  tokenTexts )
+                index, command = condition.execute( statusCommand,  tokenTexts )
             # ------------------------------------------------------   
             # 有找到指令
             if( command != None ):
@@ -192,11 +194,11 @@ if __name__ == "__main__":
         # Initial
 
         agent       = SpeechRecognizeAgent()
-        agent.start()
-        app         = QtWidgets.QApplication( SYS.argv )
-        window      = GameMainUi()
-        window.show()
-        app.exec_()
+      #  agent.start()
+      #  app         = QtWidgets.QApplication( SYS.argv )
+      #  window      = GameMainUi()
+      #  window.show()
+      #  app.exec_()
 
     try:
         run_app()
