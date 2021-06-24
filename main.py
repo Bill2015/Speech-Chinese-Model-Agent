@@ -9,7 +9,7 @@ import sys          as SYS
 import time         as TIME
 import pprint       as PPRINT
 import jieba_fast   as JIEBA
-from pypinyin.core import lazy_pinyin
+from pypinyin.core  import lazy_pinyin
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
 from Util.command           import ActionCommand, Command
@@ -17,8 +17,6 @@ from Util.condition         import Condition, PinyionCondition, SimilarCondition
 from Util.model             import Model  
 from Interface.mainGame     import GameMainUi
 from google_trans_new       import google_translator  
-
-from nltk.corpus import wordnet
 
 class SpeechSensor():
     def __init__(self) -> None:
@@ -67,16 +65,29 @@ class SpeechRecognizeAgent():
         
 
         self.doAction()
+
+        "攻擊完後恢復"
+        "攻擊上面的敵人"
+        "攻擊上面的敵人"
+        "攻擊"
     
 
     def doAction( self ):
-        textSpeech = "張壹智要打擊"
-        print( textSpeech )
+        textSpeech = "攻擊完之後進攻"
+        print( "語音輸入：" + textSpeech )
     
+        # 載入自訂義詞庫
+        JIEBA.set_dictionary( "resources/dict.txt.big" )
+        JIEBA.load_userdict( "resources/customDict.txt" )
+        tokenTexts = JIEBA.lcut(textSpeech, cut_all=False, HMM=False)
+        print( "結疤分詞：", str(tokenTexts) )
 
-        tokenText = JIEBA.lcut(textSpeech, cut_all=False, HMM=True)
-        print( "結疤分詞：", tokenText )
+        # 移除停止詞
+        for token in tokenTexts:
+            if( token in self._model.getStopwordSet() ):
+                tokenTexts.remove( token )
 
+        print( "停止詞移除後：" + str(tokenTexts) )
         # 初始化 Command
         command = None
 
@@ -85,22 +96,22 @@ class SpeechRecognizeAgent():
 
             # 拼音判斷
             if( isinstance(condition, PinyionCondition) ):
-                pinyinToken = PinyionCondition.GeneratePinyinList( tokenText )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenText,  pinyinToken )
+                pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
+                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  pinyinToken )
                 # 加入至相似詞裡
                 if( isinstance( command, ActionCommand ) ):
-                    command.addSimilarWord( tokenText[index] )
+                    command.addSimilarWord( tokenTexts[index] )
 
             # 翻譯判斷
             elif( isinstance(condition, TranslateCondition) ):
-                englishToken = TranslateCondition.GenerateEnglishList( tokenText )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenText,  englishToken )
+                englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
+                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  englishToken )
                 # 加入至同義詞裡
                 if( isinstance( command, ActionCommand ) ):
-                    command.addSynonymWord( tokenText[index] )
+                    command.addSynonymWord( tokenTexts[index] )
             # 其他
             else:
-                _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenText )
+                _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenTexts )
             
             # 有找到指令
             if( command != None ):
@@ -117,11 +128,11 @@ if __name__ == "__main__":
        #     print(synset.definition())
         # Initial
 
-      #  agent       = SpeechRecognizeAgent()
-        app         = QtWidgets.QApplication( SYS.argv )
-        window      = GameMainUi()
-        window.show()
-        app.exec_()
+        agent       = SpeechRecognizeAgent()
+      #  app         = QtWidgets.QApplication( SYS.argv )
+      #  window      = GameMainUi()
+      #  window.show()
+      #  app.exec_()
 
     try:
         run_app()

@@ -1,7 +1,8 @@
+from Interface.obj import HistoryLabel
 import sys
 from typing             import List
 from PyQt5              import QtWidgets, uic
-from PyQt5.QtWidgets    import (QCheckBox, QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets    import (QCheckBox, QDialog, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QProgressBar, QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget)
 from PyQt5.QtGui        import *
 from PyQt5.QtCore       import *
 from PyQt5.uic.uiparser import QtCore 
@@ -14,11 +15,12 @@ from Interface.entity   import EnemyLabel, EntityLabel, PlayerLabel, SlimeLabel,
 
 
 class GameMainUi(QtWidgets.QMainWindow):
-    PLAYER_NO_MOVE      = 0
-    PLAYER_MOVE_UP      = 1
-    PLAYER_MOVE_DWON    = 2
-    PLAYER_MOVE_LEFT    = 3
-    PLAYER_MOVE_RIGHT   = 4
+    PLAYER_NO_MOVE      = -1
+    PLAYER_MOVE_UP      = 0
+    PLAYER_MOVE_DWON    = 1
+    PLAYER_MOVE_LEFT    = 2
+    PLAYER_MOVE_RIGHT   = 3
+
 
     def __init__(self) -> None:
         QtWidgets.QMainWindow.__init__(self)
@@ -27,6 +29,7 @@ class GameMainUi(QtWidgets.QMainWindow):
 
         # 主要遊戲網格
         self._mainGameWidget:QWidget            = self.findChild( QWidget, name='gameMainWidget' )
+        self._historyWidget:QWidget             = self.findChild( QWidget, name='historyWidget' )
         self._mainLayout:QGridLayout            = self._mainGameWidget.layout()
         self._grid: List[List[GameBox]]         = []
 
@@ -61,6 +64,7 @@ class GameMainUi(QtWidgets.QMainWindow):
     def _mapGenerator( self ):
         dx, dy = Utility.generatePosition()
         self._playerLabel           = PlayerLabel( dx, dy )
+        self._playerLabel.setHealthBar( self.findChild( QProgressBar, name='playerHealthBar' ) )
         self._entityList.append( self._playerLabel )
         self._grid[ dx ][ dy ].addObject( self._playerLabel )
 
@@ -104,11 +108,18 @@ class GameMainUi(QtWidgets.QMainWindow):
                 else:
                     pass
 
+                if( entity.isDeath() == True ):
+                    self._entityList.remove( entity )
+
+
             entity.updateAI( self._grid )
 
 
+    def doCommand( self, commad:str ):
+        
+        pass
 
-            
+
        # print( "更新中！" )
     def keyPressEvent(self, event):
         super(GameMainUi, self).keyPressEvent(event)
@@ -131,12 +142,22 @@ class GameMainUi(QtWidgets.QMainWindow):
 
     def playerMove( self, move=0 ):
         if( move == GameMainUi.PLAYER_NO_MOVE ):
-            pass
-        elif( move == GameMainUi.PLAYER_MOVE_UP ):
-            self._playerLabel.move(0, -1)
-        elif( move == GameMainUi.PLAYER_MOVE_DWON ):
-            self._playerLabel.move(0, 1)
-        elif( move == GameMainUi.PLAYER_MOVE_LEFT ):
-            self._playerLabel.move(-1, 0)
-        elif( move == GameMainUi.PLAYER_MOVE_RIGHT ):
-            self._playerLabel.move(1, 0)
+            return
+
+        dpos = Utility.MOVE_DIRECTION[ move ]
+    
+        # 玩家移動
+        self._playerLabel.move( dpos, self._grid)
+
+        # 判斷移動的方向是否是敵人
+        if( self._playerLabel.isMoved() == False ):
+            pos = self._playerLabel.getPosition()
+            x = min( max( 0, pos[0] + dpos[0] ), Utility.GAME_BOX_GRID[0] - 1)
+            y = min( max( 0, pos[1] + dpos[1] ), Utility.GAME_BOX_GRID[1] - 1)
+            # 判斷此網格上是否敵人
+            if( self._grid[ x ][ y ].isEnemyOn() == True ):
+                # 取得敵人物件
+                enemy = self._grid[ x ][ y ].getObject()
+                if( isinstance( enemy, EnemyLabel ) ):
+                    enemy.damage( 10, self._playerLabel )
+

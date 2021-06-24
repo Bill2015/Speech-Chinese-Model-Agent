@@ -9,10 +9,10 @@ import random           as RANDOM
 class Utility():
     RESOURCE_PATH           = OS.getcwd() + "\\resources\\"
     IMAGE_RESOURCE_PATH     = OS.getcwd() + "\\resources\\image\\"
-    GAME_BOX_GRID           = (20, 15)
+    GAME_BOX_GRID           = (30, 15)
     GRIDE_SIZE              = 48
     GAME_UPDATE_TIMER       = 0.25
-    MOVE_DIRECTION          = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+    MOVE_DIRECTION          = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     MOVE_DIRECTION_8        = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]
     def __init__(self) -> None:
         pass

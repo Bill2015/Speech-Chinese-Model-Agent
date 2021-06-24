@@ -53,8 +53,8 @@ class GameBox(QFrame):
        #     self.setStyleSheet( "background-color: rgb(167, 167, 175);" )
 
     def getObject( self ):
-        if( len( self._gameLayout.children() ) > 1 ):
-            return self._gameLayout.children()[0]
+        if( len( self.children() ) >= 2 ):
+            return self.children()[1]
         return None
 
     def isObstruction( self ):

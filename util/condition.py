@@ -2,6 +2,7 @@
 
 import abc                  as ABC
 from typing                 import Dict, List, Tuple, Tuple
+import jieba_fast
 
 from pypinyin               import lazy_pinyin
 from Util.command           import ActionCommand, ActionParameter, Command
@@ -128,17 +129,20 @@ class PinyionCondition( Condition ):
                         if( abs( pinyinLength - commandLength ) > 5 or abs( pinyinLength * 2 - commandLength * 2 ) > 5 ):
                             continue
                         
+                        # 距離
                         distance = 0
                         if( pinyinLength < 5 or commandLength < 5 ):
                             distance = self._levenshteinDistance( pinToken + pinToken, commandRoma + commandRoma )
                         else:
                             distance = self._levenshteinDistance( pinToken, commandRoma )
                         print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken[i], roma=pinToken, key=key, roma2=commandRoma, distance=distance ) )
+                        
+                        # 找出最小距離
                         if( distance < maximumRate ):
                             maximumRate     = distance
                             minimumKey      = key
                             tokenKey        = i
-            
+        # 距離大於
         if( maximumRate >= 5 ):
             return (-1, None)
         else:
@@ -156,6 +160,7 @@ class PinyionCondition( Condition ):
         Returns:
             [int]: 距離，越大代表差距越大
         """
+
         matrix = [[ i + j for j in range(len(str2) + 1)] for i in range(len(str1) + 1)]
         for i in range(1, len(str1) + 1):
 

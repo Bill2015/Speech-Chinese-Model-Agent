@@ -119,15 +119,47 @@ class ActionCommand(Command):
 
 
 
+# -------------------------------------------
+class Parameter():
+    def __init__(self, keyWord, jsonData) -> None:
+
+        self._synonymDicts:dict             = jsonData['同義詞']
+        self._similarWords:List[str]        = jsonData['相似詞']
+        self._synonymWords:List[str]        = []
+        self._englishName:Set[str]          = set()
+
+        # PPRINT.pprint( self._status )
+        # 新增原有的中文翻譯字
+        if( keyWord not in self._synonymDicts.keys() ):
+            translateWord = ActionCommand.TRANSLATOR.translate( keyWord ).lower().strip()
+            self._synonymDicts[ keyWord ] = translateWord
+
+        # 取出每個同義字
+        for synKey in self._synonymDicts.keys():
+            self._synonymWords.append( synKey )
+            # 判斷是否還未幫同義字翻譯
+            if( self._synonymDicts[ synKey ] == "" ):
+                translateWord = ActionCommand.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
+                self._synonymDicts[ synKey ] = translateWord
+                self._englishName.add( translateWord )
+            # 已經有翻譯了
+            else:
+                self._englishName.add( self._synonymDicts[ synKey ] )
+
+    
 
 class ActionParameter(Command):
+
+    # -------------------------------------------
     def __init__(self, data:dict ) -> None:
         Command.__init__( self, data )
 
-        self._correctWords:Dict[str, str]   = self._jsonData['修正詞']
-        self._targetWords:set               = set( self._correctWords.values() )
+        self._jsonWordSet:Dict[str, str]                = self._jsonData['詞集']
+        self._parameterDict: Dict[str, Parameter]       = []
+        for keyWord in self._jsonWordSet.keys():
+            self._parameterDict[ keyWord ] = Parameter( keyWord, self._jsonWordSet[ keyWord ] )
 
         pass
 
-    def getCorrectWords( self ) -> Dict[str, str]:
-        return self._correctWords
+    def getParameters( self ) -> Dict[str, Parameter]:
+        return self._parameterDict
