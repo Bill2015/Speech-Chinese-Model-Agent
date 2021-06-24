@@ -10,6 +10,7 @@ import time         as TIME
 import pprint       as PPRINT
 import jieba_fast   as JIEBA
 from pypinyin.core  import lazy_pinyin
+from requests import models
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
 from Util.command           import ActionCommand, ActionParameter, Command
@@ -19,7 +20,7 @@ from Interface.mainGame     import GameMainUi
 from google_trans_new       import google_translator  
 
 class SpeechSensor():
-    def __init__(self) -> None:
+    def __init__(self):
         pass
 
     def speechToText(self):
@@ -55,75 +56,99 @@ class SpeechSensor():
                 print("超過時間")
                 return None
 
-    
-class SpeechRecognizeAgent():
+
+class SpeechRecognizeAgent(THREAD.Thread):
     def __init__(self) -> None:
+        THREAD.Thread.__init__(self)
+        self._working = True
+        self._counter = 0
+
         self._model                         = Model()
         self._conditions:List[Condition]    = [SimpleCondition(), SynonymCondition(), SimilarCondition(), PinyionCondition(), TranslateCondition()]
         self._sensor                        = SpeechSensor()
-        self._status                        = "隨時"
+        self._nowStatus                     = "隨時"
         
+        # ------------- Jieba 載入自訂義詞庫 -------------
+        JIEBA.set_dictionary( "resources/dict.txt.big" )
+        JIEBA.load_userdict( "resources/customDict.txt" )
+        for keyWord in self._model.getKeyWordSet():
+            JIEBA.add_word( keyWord, Model.KEY_WORD_WEIGHT )
 
-        
         self.doAction()
 
+
+    def run(self):
+        while(  self._working == True and self._counter < 5 ):
+            print("Threading....{index}".format( index=self._counter ))
+            self._counter += 1
+            self.doAction()
+            TIME.sleep(1)
 
     def doAction( self ):
         pinyinToken:List[str]   = None
         englishToken:List[str]  = None
 
-        textSpeech = self._sensor.speechToText()
+        textSpeech = "公雞後使用回復藥"
         if( textSpeech == None ):
             return
         print( "語音輸入：" + textSpeech )
-    
-        # 載入自訂義詞庫
-        JIEBA.set_dictionary( "resources/dict.txt.big" )
-        JIEBA.load_userdict( "resources/customDict.txt" )
+     
         tokenTexts = JIEBA.lcut(textSpeech, cut_all=False, HMM=False)
         print( "結疤分詞：", str(tokenTexts) )
 
         # 移除停止詞
-        for token in tokenTexts:
-            if( token in self._model.getStopwordSet() ):
-                tokenTexts.remove( token )
+        self._model.removeStopWords( tokenTexts )
 
         print( "停止詞移除後：" + str(tokenTexts) )
         # 初始化 Command
         command     = None
         parameter   = None
-        # # ========================================================================================================
+        # ========================================================================================================
         # 每種判斷取出
         for condition in self._conditions:
+            # 取出目前狀態可以判斷的指令
+            statusCommand = self._model.getCommandsByStatus( self._nowStatus )
+            if( statusCommand == None ):
+                print( "未知狀態" )
+                return
             # ------------------------------------------------------
             # 拼音判斷
             if( isinstance(condition, PinyionCondition) ):
                 pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  pinyinToken )
+                index, command = condition.execute( statusCommand, tokenTexts,  pinyinToken )
                 # 加入至相似詞裡
-                if( isinstance( command, ActionCommand ) ):
+                if( command != None ):
                     command.addSimilarWord( tokenTexts[index] )
+                    JIEBA.add_word( tokenTexts[index], Model.KEY_WORD_WEIGHT )
             # ------------------------------------------------------
             # 翻譯判斷
             elif( isinstance(condition, TranslateCondition) ):
                 englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  englishToken )
+                index, command = condition.execute( statusCommand, tokenTexts,  englishToken )
                 # 加入至同義詞裡
-                if( isinstance( command, ActionCommand ) ):
+                if( command != None ):
                     command.addSynonymWord( tokenTexts[index] )
+                    JIEBA.add_word( tokenTexts[index], Model.KEY_WORD_WEIGHT )
             # ------------------------------------------------------
             # 其他
             else:
-                _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenTexts )
+                _, command = condition.execute( statusCommand,  tokenTexts )
             # ------------------------------------------------------   
             # 有找到指令
             if( command != None ):
                 print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
+                self._nowStatus  = command.nextStatus( self._nowStatus )
+                print( "目前狀態：" , self._nowStatus )
                 break
         
         # ========================================================================================================
         # 參數判斷
         # for condition in self._conditions:
+        #    # 取出目前狀態可以判斷的參數
+        #    statusParameter = self._model.getCommandsByStatus( self._nowStatus )
+        #    if( statusParameter == None ):
+        #        print( "未知狀態" )
+        #        return
         #     # ------------------------------------------------------
         #     # 拼音判斷
         #     if( isinstance(condition, PinyionCondition) ):
@@ -131,7 +156,7 @@ class SpeechRecognizeAgent():
         #         if( pinyinToken == None ):
         #             pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
 
-        #         index, parameter = condition.execute( self._model.getParameterByStatus( self._status ), tokenTexts,  pinyinToken )
+        #         index, parameter = condition.execute( statusParameter, tokenTexts,  pinyinToken )
         #         # 加入至相似詞裡
         #         if( parameter != None ):
         #             parameter.addSimilarWord( tokenTexts[index] )
@@ -142,21 +167,21 @@ class SpeechRecognizeAgent():
         #         if( englishToken == None ):
         #             englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
                 
-        #         index, parameter = condition.execute( self._model.getParameterByStatus( self._status ), tokenTexts,  englishToken )
+        #         index, parameter = condition.execute( statusParameter, tokenTexts,  englishToken )
         #         # 加入至同義詞裡
         #         if( parameter != None ):
         #             parameter.addSynonymWord( tokenTexts[index] )
         #     # ------------------------------------------------------
         #     # 其他
         #     else:
-        #         _, parameter = condition.execute( self._model.getParameterByStatus( self._status ),  tokenTexts )
+        #         _, parameter = condition.execute( statusParameter,  tokenTexts )
         #     # ------------------------------------------------------   
         #     # 有找到指令
         #     if( parameter != None ):
         #         print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", parameter.getChineseName() )
         #         break
 
-        self._model.saveDataToFile()
+        # self._model.saveDataToFile()
         
 
 if __name__ == "__main__":
@@ -167,10 +192,11 @@ if __name__ == "__main__":
         # Initial
 
         agent       = SpeechRecognizeAgent()
-      #  app         = QtWidgets.QApplication( SYS.argv )
-      #  window      = GameMainUi()
-      #  window.show()
-      #  app.exec_()
+        agent.start()
+        app         = QtWidgets.QApplication( SYS.argv )
+        window      = GameMainUi()
+        window.show()
+        app.exec_()
 
     try:
         run_app()

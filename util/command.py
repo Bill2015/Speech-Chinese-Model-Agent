@@ -1,10 +1,11 @@
 
 
 ## 羅馬拼音模組 ##
-from pprint import pprint
-from typing import Dict, List, Set
-from pypinyin import lazy_pinyin
-from google_trans_new       import google_translator  
+from pprint             import pprint
+from typing             import Dict, List, Set
+from pypinyin           import lazy_pinyin
+from google_trans_new   import google_translator  
+import jieba_fast       as JIEBA
 
 # ======================================================================
 # 指令
@@ -22,7 +23,7 @@ class Command():
         self._synonymDicts:dict         = self._jsonData['同義詞']
         self._similarWords:List[str]    = self._jsonData['相似詞']
         self._synonymWords:List[str]    = []
-        self._synonymRomas:List[str]   = []
+        self._synonymRomas:List[str]    = []
 
     def __init__(self,  data:dict ) -> None:
         self._jsonData                  = data
@@ -36,7 +37,6 @@ class Command():
         self._similarWords:List[str]    = self._jsonData['相似詞']
         self._synonymWords:List[str]    = []
         self._synonymRomas:List[str]    = []
-        pass
     
     # 取得中文名稱
     def getChineseName( self ) -> str:
@@ -52,6 +52,13 @@ class Command():
     def getStatus( self ) -> Dict[str, str]:
         """取得狀態表"""
         return self._status
+
+    # 取得狀態表
+    def nextStatus( self, nowStatus:str ) -> str:
+        """取得狀態表"""
+        if( nowStatus in self._status ):
+            return self._status[ nowStatus ]
+        return None
 
     # 可數的，代表指令可以加數字，以執行多次
     def countable( self ) -> bool:
@@ -104,7 +111,12 @@ class Command():
 
     def getSynonymDicts( self ) -> dict:
         return self._synonymDicts
-
+        
+    def getKeyWordSet( self ) -> Set[str]:
+        keySet = set()
+        keySet.update( self._similarWords )
+        keySet.update( self._synonymWords )
+        return keySet
 
 # ======================================================================
 # 指令類別，用來存放每一個指令的資訊
@@ -130,6 +142,7 @@ class ActionCommand(Command):
             # 已經有翻譯了
             else:
                 self._englishName.add( self._synonymDicts[ synKey ] )
+
 
         self._synonymRomas:List[str]    = [ "-".join( lazy_pinyin( word ) ) for word in self._synonymWords ]
         pass
@@ -161,7 +174,9 @@ class ActionParameter(Command):
             # 已經有翻譯了
             else:
                 self._englishName.add( self._synonymDicts[ synKey ] )
-        
+
+            
+             
         self._synonymRomas:List[str]    = [ "-".join( lazy_pinyin( word ) ) for word in self._synonymWords ]
 
    

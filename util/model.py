@@ -7,15 +7,15 @@ from Util.command   import ActionCommand, ActionParameter, Command   # 用來 Pr
 
 # 模型建立
 class Model():
-    COMMAND_FILE_PATH = OS.getcwd() + "\\model\\command.json"
-    PARAMETER_FLIE_PATH = OS.getcwd() + "\\model\\parameter.json"
+    COMMAND_FILE_PATH   = OS.getcwd() + "\\model\\command.json"
+    PARAMETER_FILE_PATH = OS.getcwd() + "\\model\\parameter.json"
+    KEY_WORD_WEIGHT = 8
 
     def __init__( self ) -> None:
         self._commands:Dict[str, ActionCommand]                 = {}     # 存放 "指令" 的類別
         self._commandStatus:Dict[Dict[str, ActionCommand]]      = {}     # 依照狀態來將 "指令" 分類的 Hash
         self._parameters:Dict[str, ActionParameter]             = {}     # 存放 "參數"
         self._parameterStatus:Dict[Dict[str, ActionParameter]]  = {}     # 依照狀態來將 "參數" 分類的 Hash
-
 
         with open( Model.COMMAND_FILE_PATH, encoding='utf-8', mode='r+') as file:
             jsonData = JSON.load( file )
@@ -37,7 +37,7 @@ class Model():
         # PPRINT.pprint( self._status )
 
         # -----------------------------------
-        with open( Model.PARAMETER_FLIE_PATH, encoding='utf-8', mode='r+') as file:
+        with open( Model.PARAMETER_FILE_PATH, encoding='utf-8', mode='r+') as file:
             jsonData = JSON.load( file )
 
             for jpermeter in jsonData['參數集']:
@@ -69,9 +69,6 @@ class Model():
             for stopword in stopwords:
                  self._stopwordSet.add(stopword.strip('\n'))
 
-    def getStopwordSet( self ) -> Set[str]:
-        return self._stopwordSet
-
     # 取得指令集
     def getCommands( self ) -> Dict[str,  ActionCommand]:
         """取得指令集"""
@@ -80,12 +77,40 @@ class Model():
     # 依狀態取得指令表 
     def getCommandsByStatus( self, status:str ) -> Dict[str, ActionCommand]:
         """依狀態取得指令表 """
-        return self._commandStatus[ status ]
+        if( status in self._commandStatus ):
+            return self._commandStatus[ status ]
+        return None
 
     # 依狀態取得參數表 
     def getParameterByStatus( self, status:str ) -> Dict[str, ActionParameter]:
         """依狀態取得指令表 """
-        return self._parameterStatus[ status ]
+        if( status in self._parameterStatus ):
+            return self._parameterStatus[ status ]
+        return None
+
+    def getKeyWordSet( self ) -> Set[str]:
+        """取得關鍵詞彙，以便於 Jieba 新增文字權重
+        Returns:
+            Set[str]: 關鍵詞彙集
+        """
+        keySet = set()
+        for key, item in self._commands.items():
+            keySet.update( item.getKeyWordSet() )
+        for key, item in self._parameters.items():
+            keySet.update( item.getKeyWordSet() )
+        return keySet
+
+    def removeStopWords( self, tokens:List[str] ) -> List[str]:
+        """移除停止詞
+        Args:
+            tokens (List[str]): 欲移除的文字串列
+        Returns:
+            List[str]: 移除完的串列
+        """
+        for token in tokens:
+            if( token in self._stopwordSet ):
+                tokens.remove( token )
+        return tokens    
 
     # 儲存新的資訊至檔案內
     def saveDataToFile( self ):
@@ -137,6 +162,6 @@ class Model():
         pass
 
         # 寫入檔案
-        with open( Model.PARAMETER_FLIE_PATH, encoding='utf-8', mode="w") as file:
+        with open( Model.PARAMETER_FILE_PATH, encoding='utf-8', mode="w") as file:
             JSON.dump( parameterData, file,  ensure_ascii=False)
         pass
