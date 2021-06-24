@@ -21,6 +21,31 @@ class Condition():
     @ABC.abstractclassmethod
     def getConditionName( self ):
         return NotImplemented
+# ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
+# ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡       數字判斷      ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
+class NumberCondition( Condition ):
+    def __init__(self) -> None:
+        pass
+
+    def execute(self, token: str) -> int:
+        """判斷是否是數字
+
+        Args:
+            model (Model): 模型
+            token (str): 分割後的字元
+
+        Returns:
+            Command: 回傳出指令
+        """
+        # 取得所有指令
+        try:
+            strInt = int(token)
+            return strInt
+        except ValueError:
+            return 1
+
+    def getConditionName(self):
+        return "數字判斷"
 
 # ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
 # ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡       簡單判斷      ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
@@ -28,21 +53,20 @@ class SimpleCondition( Condition ):
     def __init__(self) -> None:
         pass
 
-    def execute(self, commandMap: Dict[str, Command], tokens: List[str]) -> Tuple[int, Command]:
+    def execute(self, commandMap: Dict[str, Command], token: str) -> Command:
         """以最簡單比對去做指令字串比對
 
         Args:
             model (Model): 模型
-            tokens (List[str]): 分割後的自串
+            token (str): 分割後的字元
 
         Returns:
             Command: 回傳出指令
         """
         # 取得所有指令
-        for i, token in enumerate(tokens):
-            if( token in commandMap.keys() ):
-                return (i, commandMap[ token ])
-        return (-1, None)
+        if( token in commandMap.keys() ):
+            return commandMap[ token ]
+        return None
 
     def getConditionName(self):
         return "一般判斷"
@@ -53,22 +77,21 @@ class SynonymCondition( Condition ):
         pass
 
     # 只判斷是否與指令的同義詞一樣
-    def execute( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Tuple[int, Command]:
+    def execute( self, commandMap:Dict[str, Command] , token:str ) -> Command:
         """以最簡單比對去做指令字串比對 同義詞
 
         Args:
             model (Model): 模型
-            tokens (List[str]): 分割後的自串
+            token (str): 分割後的文字
 
         Returns:
             Command: 回傳出指令
         """
         # 取得所有指令
-        for i, token in enumerate(tokens):
-            for key in commandMap.keys():
-                if( token in commandMap[ key ].getSynonymNames() ):
-                    return (i, commandMap[ key ])
-        return (-1, None)
+        for key in commandMap.keys():
+            if( token in commandMap[ key ].getSynonymNames() ):
+                return commandMap[ key ]
+        return None
     
     def getConditionName(self):
         return "同義字判斷"
@@ -79,22 +102,21 @@ class SimilarCondition( Condition ):
         pass
     
     # 只判斷是否與指令的相似詞的一樣名稱
-    def execute( self, commandMap:Dict[str, Command] , tokens:List[str] ) -> Tuple[int, Command]:
+    def execute( self, commandMap:Dict[str, Command] , token:str ) -> Command:
         """以最簡單比對去做指令字串比對 相似詞
 
         Args:
             model (Model): 模型
-            tokens (List[str]): 分割後的自串
+            token (str): 分割後的文字
 
         Returns:
             Command: 回傳出指令
         """
         # 取得所有指令
-        for i, token in enumerate(tokens):
-            for key in commandMap.keys():
-                if( token in commandMap[ key ].getSimilarNames() ):
-                    return (i, commandMap[ key ])
-        return (-1, None)
+        for key in commandMap.keys():
+            if( token in commandMap[ key ].getSimilarNames() ):
+                return  commandMap[ key ]
+        return  None
 
     def getConditionName(self):
         return "相似字判斷"
@@ -115,40 +137,38 @@ class PinyionCondition( Condition ):
         return  "-".join( lazy_pinyin( token ) )
 
     # 拼音比對
-    def execute( self, commandMap:Dict[str, Command], originToken:List[str], pinyinTokens:List[str] )  -> Tuple[int, Command]:
+    def execute( self, commandMap:Dict[str, Command], originToken:str, pinyinToken:str )  ->  Command:
         maximumRate = 99
         minimumKey = ""
-        tokenKey   = 0
         # 拼音取出
-        for i, pinToken in enumerate(pinyinTokens):
-            pinyinLength = len( pinToken )
-            # 將每個指令取出
-            for key in commandMap.keys():
-                # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
-                for commandRoma in commandMap[ key ].getSynonymRomas():
-                    commandLength = len( commandRoma )
-                    # 假如兩者字串長度差距過大就略過，以節省運算時間
-                    if( abs( pinyinLength - commandLength ) > 5 or abs( pinyinLength * 2 - commandLength * 2 ) > 5 ):
-                        continue
-                    
-                    # 距離
-                    distance = 0
-                    if( pinyinLength < 5 or commandLength < 5 ):
-                        distance = self._levenshteinDistance( pinToken + pinToken, commandRoma + commandRoma )
-                    else:
-                        distance = self._levenshteinDistance( pinToken, commandRoma )
-                    print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken[i], roma=pinToken, key=key, roma2=commandRoma, distance=distance ) )
-                    
-                    # 找出最小距離
-                    if( distance < maximumRate ):
-                        maximumRate     = distance
-                        minimumKey      = key
-                        tokenKey        = i
+        pinyinLength = len( pinyinToken )
+        # 將每個指令取出
+        for key in commandMap.keys():
+            # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+            for commandRoma in commandMap[ key ].getSynonymRomas():
+                commandLength = len( commandRoma )
+                # 假如兩者字串長度差距過大就略過，以節省運算時間
+                if( abs( pinyinLength - commandLength ) > 5 or abs( pinyinLength * 2 - commandLength * 2 ) > 5 ):
+                    continue
+                
+                # 距離
+                distance = 0
+                if( pinyinLength < 5 or commandLength < 5 ):
+                    distance = self._levenshteinDistance( pinyinToken + pinyinToken, commandRoma + commandRoma )
+                else:
+                    distance = self._levenshteinDistance( pinyinToken, commandRoma )
+                print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken, roma=pinyinToken, key=key, roma2=commandRoma, distance=distance ) )
+                
+                # 找出最小距離
+                if( distance < maximumRate ):
+                    maximumRate     = distance
+                    minimumKey      = key
+
         # 距離大於
         if( maximumRate >= 5 ):
-            return (-1, None)
+            return None
         else:
-            return (tokenKey, commandMap[ minimumKey ])
+            return commandMap[ minimumKey ]
 
     
     # 編輯距離計算
@@ -200,7 +220,7 @@ class TranslateCondition( Condition ):
     def GenerateEnglish( token:str ):
         return TranslateCondition.TRANSLATOR.translate( token )
 
-    def execute(self, commandMap: Dict[str, Command], originToken:List[str], engTokens: List[str]) -> Tuple[int, Command]:
+    def execute(self, commandMap: Dict[str, Command], originToken:List[str], engToken: str) ->  Command:
         """經由 Google 翻譯去判斷兩者詞彙是否接近
         Args:
             commandMap (Dict[str, Command]): 指令表
@@ -208,17 +228,16 @@ class TranslateCondition( Condition ):
         Returns:
             Command: 指令
         """
-        for i, engToken in enumerate( engTokens ):
-            # 將每個指令取出
-            for key in commandMap.keys():
-                # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
-                for engCommand in commandMap[ key ].getEnglishName():
+        # 將每個指令取出
+        for key in commandMap.keys():
+            # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+            for engCommand in commandMap[ key ].getEnglishName():
 
-                    print( "(翻譯判斷) 字串A：{token}({eng}), 字串B:{key}({eng2})".format( token=originToken[i], eng=engToken, key=commandMap[ key ].getChineseName(), eng2=engCommand ) )
-                    # 判斷是否英文字一樣
-                    if( engCommand.lower().strip() == engToken ):
-                        return (i, commandMap[ key ])
-        return (-1, None)
+                print( "(翻譯判斷) 字串A：{token}({eng}), 字串B:{key}({eng2})".format( token=originToken, eng=engToken, key=commandMap[ key ].getChineseName(), eng2=engCommand ) )
+                # 判斷是否英文字一樣
+                if( engCommand.lower().strip() == engToken ):
+                    return commandMap[ key ]
+        return None
 
     def getConditionName(self):
         return "翻譯判斷"

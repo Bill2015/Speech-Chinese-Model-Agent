@@ -9,15 +9,26 @@ import sys          as SYS
 import time         as TIME
 import pprint       as PPRINT
 import jieba_fast   as JIEBA
-from pypinyin.core  import lazy_pinyin
-from requests import models
+
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
 from Util.command           import ActionCommand, ActionParameter, Command
-from Util.condition         import Condition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition, TranslateCondition
+from Util.condition         import Condition, NumberCondition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition, TranslateCondition
 from Util.model             import Model  
 from Interface.mainGame     import GameMainUi
 from google_trans_new       import google_translator  
+
+class CommandActivater():
+    def __init__(self, command:Command, executeTime=1) -> None:
+        self._command       = command
+        self._executeTime   = executeTime
+        pass
+    def command( self ) -> Command:
+        return self._command
+    def executeTime( self ) -> int:
+        return self._executeTime
+    def setTimes( self, times ):
+        self._executeTime = times
 
 class SpeechSensor():
     def __init__(self):
@@ -64,7 +75,7 @@ class SpeechRecognizeAgent(THREAD.Thread):
         self._counter = 0
 
         self._model                         = Model()
-        self._conditions:List[Condition]    = [SimpleCondition(), SynonymCondition(), SimilarCondition(), PinyionCondition(), TranslateCondition()]
+        self._conditions:List[Condition]    = [NumberCondition(), SimpleCondition(), SynonymCondition(), SimilarCondition(), PinyionCondition(), TranslateCondition()]
         self._sensor                        = SpeechSensor()
         self._nowStatus                     = "隨時"
         
@@ -85,10 +96,10 @@ class SpeechRecognizeAgent(THREAD.Thread):
             TIME.sleep(1)
 
     def doAction( self ):
-        pinyinToken:List[str]   = None
-        englishToken:List[str]  = None
+       
 
-        textSpeech = "公雞後使用回復藥"
+
+        textSpeech = "公雞10次後使用回復藥15次"
         if( textSpeech == None ):
             return
         print( "語音輸入：" + textSpeech )
@@ -100,88 +111,104 @@ class SpeechRecognizeAgent(THREAD.Thread):
         self._model.removeStopWords( tokenTexts )
 
         print( "停止詞移除後：" + str(tokenTexts) )
-        # 初始化 Command
-        command     = None
-        parameter   = None
-        index       = -1
-        commandList = List[Command]
-        # ========================================================================================================
-        # 每種判斷取出
-        for condition in self._conditions:
-            # 取出目前狀態可以判斷的指令
-            statusCommand = self._model.getCommandsByStatus( self._nowStatus )
-            if( statusCommand == None ):
-                print( "未知狀態" )
-                return
-            # ------------------------------------------------------
-            # 拼音判斷
-            if( isinstance(condition, PinyionCondition) ):
-                pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
-                index, command = condition.execute( statusCommand, tokenTexts,  pinyinToken )
-                # 加入至相似詞裡
-                if( command != None ):
-                    command.addSimilarWord( tokenTexts[index] )
-                    JIEBA.add_word( tokenTexts[index], Model.KEY_WORD_WEIGHT )
-            # ------------------------------------------------------
-            # 翻譯判斷
-            elif( isinstance(condition, TranslateCondition) ):
-                englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
-                index, command = condition.execute( statusCommand, tokenTexts,  englishToken )
-                # 加入至同義詞裡
-                if( command != None ):
-                    command.addSynonymWord( tokenTexts[index] )
-                    JIEBA.add_word( tokenTexts[index], Model.KEY_WORD_WEIGHT )
-            # ------------------------------------------------------
-            # 其他
-            else:
-                index, command = condition.execute( statusCommand,  tokenTexts )
-            # ------------------------------------------------------   
-            # 有找到指令
-            if( command != None ):
-                print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
-                self._nowStatus  = command.nextStatus( self._nowStatus )
-                print( "目前狀態：" , self._nowStatus )
-                break
-        
-        # ========================================================================================================
-        # 參數判斷
-        # for condition in self._conditions:
-        #    # 取出目前狀態可以判斷的參數
-        #    statusParameter = self._model.getCommandsByStatus( self._nowStatus )
-        #    if( statusParameter == None ):
-        #        print( "未知狀態" )
-        #        return
-        #     # ------------------------------------------------------
-        #     # 拼音判斷
-        #     if( isinstance(condition, PinyionCondition) ):
-        #         # 確保已經產生 Pinyin 串列
-        #         if( pinyinToken == None ):
-        #             pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
 
-        #         index, parameter = condition.execute( statusParameter, tokenTexts,  pinyinToken )
-        #         # 加入至相似詞裡
+        pinyinToken:List[str]   = PinyionCondition.GeneratePinyinList( tokenTexts )
+        englishToken:List[str]  = TranslateCondition.GenerateEnglishList( tokenTexts )
+        # 初始化 Command
+        command                                 = None      # 指令
+        countable                               = False     # 可量化 Flag
+        commandList: List[CommandActivater]     = []        # 指令串列
+        tempActivator                           = None
+        # ========================================================================================================
+        for tokenIndex, token in enumerate(tokenTexts):
+            executeTime                             = 1     # 量詞
+            # 每種判斷取出
+            for condition in self._conditions:
+                # 取出目前狀態可以判斷的指令
+                statusCommand = self._model.getCommandsByStatus( self._nowStatus )
+                if( statusCommand == None ):
+                    print( "未知狀態" )
+                    return
+                # ------------------------------------------------------
+                # 數字判斷
+                if( isinstance(condition, NumberCondition) ):
+                    if( countable == True ):
+                        executeTime = condition.execute( token )
+                # ------------------------------------------------------
+                # 拼音判斷
+                elif( isinstance(condition, PinyionCondition) ):
+                    command = condition.execute( statusCommand, token,  pinyinToken[ tokenIndex ] )
+                    # 加入至相似詞裡
+                    if( command != None ):
+                        command.addSimilarWord( token )
+                        JIEBA.add_word( token, Model.KEY_WORD_WEIGHT )
+                # ------------------------------------------------------
+                # 翻譯判斷
+                elif( isinstance(condition, TranslateCondition) ):
+                    command = condition.execute( statusCommand, token,  englishToken[ tokenIndex ] )
+                    # 加入至同義詞裡
+                    if( command != None ):
+                        command.addSynonymWord( token )
+                        JIEBA.add_word( token, Model.KEY_WORD_WEIGHT )
+                # ------------------------------------------------------
+                # 其他
+                else:
+                    command = condition.execute( statusCommand,  token )
+                # ------------------------------------------------------ 
+                # 設定次數
+                if( executeTime > 1 and tempActivator != None ):
+                    tempActivator.setTimes( executeTime )
+                # 有找到指令
+                elif( command != None ):
+                    print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
+                    tempActivator       = CommandActivater( command )
+                    commandList.append( tempActivator )
+                    self._nowStatus     = command.nextStatus( self._nowStatus )
+                    countable           = command.countable()
+                    print( "目前狀態：" , self._nowStatus )
+                    break
+        
+        for cm in commandList:
+            print( "{command} 執行 {time} 次".format(command=cm.command().getChineseName(), time=cm.executeTime()) )
+
+
+        # ========================================================================================================
+        # parameter                   = None
+        # for tokenIndex, token in enumerate(tokenTexts):
+        #     # 每種判斷取出
+        #     for condition in self._conditions:
+        #         # 取出目前狀態可以判斷的指令
+        #         statusParameter = self._model.getParameterByStatus( self._nowStatus )
+        #         if( statusParameter == None ):
+        #             print( "未知狀態" )
+        #             return
+        #         # ------------------------------------------------------
+        #         # 拼音判斷
+        #         if( isinstance(condition, PinyionCondition) ):
+        #             parameter = condition.execute( statusParameter, token,  pinyinToken[ tokenIndex ] )
+        #             # 加入至相似詞裡
+        #             if( parameter != None ):
+        #                 parameter.addSimilarWord( token )
+        #                 JIEBA.add_word( token, Model.KEY_WORD_WEIGHT )
+        #         # ------------------------------------------------------
+        #         # 翻譯判斷
+        #         elif( isinstance(condition, TranslateCondition) ):
+        #             parameter = condition.execute( statusParameter, token,  englishToken[ tokenIndex ] )
+        #             # 加入至同義詞裡
+        #             if( parameter != None ):
+        #                 parameter.addSynonymWord( token )
+        #                 JIEBA.add_word( token, Model.KEY_WORD_WEIGHT )
+        #         # ------------------------------------------------------
+        #         # 其他
+        #         else:
+        #             parameter = condition.execute( statusParameter,  token )
+        #         # ------------------------------------------------------   
+        #         # 有找到指令
         #         if( parameter != None ):
-        #             parameter.addSimilarWord( tokenTexts[index] )
-        #     # ------------------------------------------------------
-        #     # 翻譯判斷
-        #     elif( isinstance(condition, TranslateCondition) ):
-        #         # 確保已經產生 Translate 串列
-        #         if( englishToken == None ):
-        #             englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
-                
-        #         index, parameter = condition.execute( statusParameter, tokenTexts,  englishToken )
-        #         # 加入至同義詞裡
-        #         if( parameter != None ):
-        #             parameter.addSynonymWord( tokenTexts[index] )
-        #     # ------------------------------------------------------
-        #     # 其他
-        #     else:
-        #         _, parameter = condition.execute( statusParameter,  tokenTexts )
-        #     # ------------------------------------------------------   
-        #     # 有找到指令
-        #     if( parameter != None ):
-        #         print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", parameter.getChineseName() )
-        #         break
+        #             print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", parameter.getChineseName() )
+        #             self._nowStatus  = parameter.nextStatus( self._nowStatus )
+        #             print( "目前狀態：" , self._nowStatus )
+        #             break
 
         # self._model.saveDataToFile()
         
