@@ -12,7 +12,7 @@ import jieba_fast   as JIEBA
 from pypinyin.core  import lazy_pinyin
 ## 語音轉文字模組 ##
 import speech_recognition   as SPEECH_RECOGNIZE
-from Util.command           import ActionCommand, Command
+from Util.command           import ActionCommand, ActionParameter, Command
 from Util.condition         import Condition, PinyionCondition, SimilarCondition, SimpleCondition, SynonymCondition, TranslateCondition
 from Util.model             import Model  
 from Interface.mainGame     import GameMainUi
@@ -73,6 +73,9 @@ class SpeechRecognizeAgent():
     
 
     def doAction( self ):
+        pinyinToken:List[str]   = []
+        englishToken:List[str]  = []
+
         textSpeech = "攻擊完之後進攻"
         print( "語音輸入：" + textSpeech )
     
@@ -90,10 +93,11 @@ class SpeechRecognizeAgent():
         print( "停止詞移除後：" + str(tokenTexts) )
         # 初始化 Command
         command = None
-
+        
+        # ========================================================================================================
         # 每種判斷取出
         for condition in self._conditions:
-
+            # ------------------------------------------------------
             # 拼音判斷
             if( isinstance(condition, PinyionCondition) ):
                 pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
@@ -101,7 +105,7 @@ class SpeechRecognizeAgent():
                 # 加入至相似詞裡
                 if( isinstance( command, ActionCommand ) ):
                     command.addSimilarWord( tokenTexts[index] )
-
+            # ------------------------------------------------------
             # 翻譯判斷
             elif( isinstance(condition, TranslateCondition) ):
                 englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
@@ -109,15 +113,20 @@ class SpeechRecognizeAgent():
                 # 加入至同義詞裡
                 if( isinstance( command, ActionCommand ) ):
                     command.addSynonymWord( tokenTexts[index] )
+            # ------------------------------------------------------
             # 其他
             else:
                 _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenTexts )
-            
+            # ------------------------------------------------------   
             # 有找到指令
             if( command != None ):
                 print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
                 break
-    
+        
+        # ========================================================================================================
+
+
+
         self._model.saveDataToFile()
         
 

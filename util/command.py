@@ -1,11 +1,12 @@
 
 
 ## 羅馬拼音模組 ##
+from pprint import pprint
 from typing import Dict, List, Set
 from pypinyin import lazy_pinyin
 from google_trans_new       import google_translator  
 
-
+# ======================================================================
 # 指令
 class Command():
     def __init__(self,  data:dict ) -> None:
@@ -45,7 +46,7 @@ class Command():
 
         
 
-
+# ======================================================================
 # 指令類別，用來存放每一個指令的資訊
 class ActionCommand(Command):
     TRANSLATOR = google_translator()  
@@ -119,7 +120,7 @@ class ActionCommand(Command):
 
 
 
-# -------------------------------------------
+# ======================================================================
 class Parameter():
     def __init__(self, keyWord, jsonData) -> None:
 
@@ -145,9 +146,52 @@ class Parameter():
             # 已經有翻譯了
             else:
                 self._englishName.add( self._synonymDicts[ synKey ] )
+        
+        self._synonymRomas:List[str]    = [ "-".join( lazy_pinyin( word ) ) for word in self._synonymWords ]
 
+    # 加入新的相似字
+    def addSimilarWord( self, word:str ):
+        """加入新的相似字
+
+        Args:
+            word (str): 欲加入的字
+        """
+        self._similarWords.append( word )
+
+    # 加入新的同義字
+    def addSynonymWord( self, word:str ):
+        """加入新的相似字
+        Args:
+            word (str): 欲加入的字
+        """
+        translateWord = ActionCommand.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
+        self._synonymDicts[ word ] = translateWord
+        self._englishName.add( translateWord )
+
+    # 取得同義詞的羅馬拼音
+    def getSynonymRomas( self ) -> List[str]:
+        """取得指令取得同義詞的羅馬拼音"""
+        return self._synonymRomas     
+
+    # 取得同義詞
+    def getSynonymNames( self ) -> List[str]:
+        """取得指令取得同義詞"""
+        return self._synonymWords
+
+    # 取得英文名稱
+    def getEnglishName( self ) -> Set[str]:
+        """取得指令英文名稱"""
+        return self._englishName
     
+    # 取得相近詞
+    def getSimilarNames( self ) -> List[str]:
+        """取得指令英文名稱"""
+        return self._similarWords
 
+    def getSynonymDicts( self ) -> dict:
+        return self._synonymDicts
+
+# ======================================================================
 class ActionParameter(Command):
 
     # -------------------------------------------
@@ -155,11 +199,13 @@ class ActionParameter(Command):
         Command.__init__( self, data )
 
         self._jsonWordSet:Dict[str, str]                = self._jsonData['詞集']
-        self._parameterDict: Dict[str, Parameter]       = []
+        self._parameterDict: Dict[str, Parameter]       = {}
+        # 取出每個詞集的鍵值
         for keyWord in self._jsonWordSet.keys():
             self._parameterDict[ keyWord ] = Parameter( keyWord, self._jsonWordSet[ keyWord ] )
 
         pass
 
+    # -------------------------------------------
     def getParameters( self ) -> Dict[str, Parameter]:
         return self._parameterDict
