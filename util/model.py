@@ -20,8 +20,6 @@ class Model():
         with open( Model.COMMAND_FILE_PATH, encoding='utf-8', mode='r+') as file:
             jsonData = JSON.load( file )
         # -----------------------------------
-            self._commandStatus = {}      # 依照狀態來將指令分類的 Hash
-
             # 讀取所有指令
             for jcommand in jsonData['指令集']:
                 command = ActionCommand( jcommand )
@@ -43,17 +41,26 @@ class Model():
             jsonData = JSON.load( file )
 
             for jpermeter in jsonData['參數集']:
-                parameter = ActionParameter( jpermeter )
-                self._parameters[ parameter.getChineseName() ] = parameter
-    
+                name        = jpermeter['名稱']
+                countable   = jpermeter['可量化']
+                status      = jpermeter['狀態']
+
                 # 依狀態將指令分類
-                for statusKey in jpermeter['狀態'].keys():
+                for statusKey in status.keys():
+         
+                    statusData = {}
+                    for paraKey, jparadata in jpermeter['詞集'].items():
+                        parameter = ActionParameter( jparadata, name, paraKey, countable, status )
+                        self._parameters[ paraKey ] = parameter
+
+                        # 判斷此狀態是否已經存在此 物件
+                        if( parameter not in statusData ):
+                            statusData[ paraKey ] = parameter
+                            
                     # 判斷 Key 值是否已存在於狀態表裡 (因為我們要以輸入的狀態幫指令分類，以減少搜尋的時間複雜度)
                     if( statusKey not in self._parameterStatus ):
                         self._parameterStatus[ statusKey ] = {}
-                    # 判斷此狀態是否已經存在此 物件
-                    if( parameter not in self._parameterStatus[ statusKey ] ):
-                        self._parameterStatus[ statusKey ][ parameter.getChineseName() ] = parameter
+                    self._parameterStatus[ statusKey ].update( statusData )
 
         # --------------------------------
         # 載入停止詞
@@ -75,6 +82,11 @@ class Model():
         """依狀態取得指令表 """
         return self._commandStatus[ status ]
 
+    # 依狀態取得參數表 
+    def getParameterByStatus( self, status:str ) -> Dict[str, ActionParameter]:
+        """依狀態取得指令表 """
+        return self._parameterStatus[ status ]
+
     # 儲存新的資訊至檔案內
     def saveDataToFile( self ):
         """ 儲存新的資訊至檔案內 """
@@ -95,21 +107,30 @@ class Model():
         # 將參數資料寫入
         parameterData = {}
         parameterData['參數集'] = []
-        for parameterSet in self._parameters.values():
-            data = {}
-            data['名稱']         = parameterSet.getChineseName()
-            data['可量化']       = parameterSet.countable()
-            data['狀態']         = parameterSet.getStatus()
-            data['詞集']         = {}
-            # 取出內參數
-            for key, parameter in parameterSet.getParameters().items():
-                pData = {}
-                pData[ key ] = {}
-                pData[ key ]['同義詞']      = parameter.getSynonymDicts()
-                pData[ key ]['相似詞']      = parameter.getSimilarNames()
+
+        belongName    = ""
+
+        data = {}
+        PPRINT.pprint( self._parameters )
+        for pkey, parameter in self._parameters.items():
+   
+            if( belongName != parameter.getBelong() ):
+                
+                if( belongName != "" ):
+                    parameterData['參數集'].append( data ) 
+                    data = {}
+                belongName           = parameter.getBelong()
+                data['名稱']         = belongName
+                data['可量化']       = parameter.countable()
+                data['狀態']         = parameter.getStatus()   
             
-                data['詞集'] = pData    
-            parameterData['參數集'].append( data ) 
+            if( '詞集' not in data ):
+                data['詞集']         = {}
+            data['詞集'][ pkey ] = {} 
+            data['詞集'][ pkey ]['同義詞']      = parameter.getSynonymDicts()
+            data['詞集'][ pkey ]['相似詞']      = parameter.getSimilarNames()
+
+        parameterData['參數集'].append( data ) 
 
         # 寫入檔案
         with open( Model.COMMAND_FILE_PATH, encoding='utf-8', mode="w") as file:

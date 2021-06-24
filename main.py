@@ -76,7 +76,7 @@ class SpeechRecognizeAgent():
         pinyinToken:List[str]   = []
         englishToken:List[str]  = []
 
-        textSpeech = "攻擊完之後進攻"
+        textSpeech = "攻擊完之後上方"
         print( "語音輸入：" + textSpeech )
     
         # 載入自訂義詞庫
@@ -92,42 +92,73 @@ class SpeechRecognizeAgent():
 
         print( "停止詞移除後：" + str(tokenTexts) )
         # 初始化 Command
-        command = None
+        command     = None
+        parameter   = None
+        # # ========================================================================================================
+        # # 每種判斷取出
+        # for condition in self._conditions:
+        #     # ------------------------------------------------------
+        #     # 拼音判斷
+        #     if( isinstance(condition, PinyionCondition) ):
+        #         pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
+        #         index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  pinyinToken )
+        #         # 加入至相似詞裡
+        #         if( isinstance( command, ActionCommand ) ):
+        #             command.addSimilarWord( tokenTexts[index] )
+        #     # ------------------------------------------------------
+        #     # 翻譯判斷
+        #     elif( isinstance(condition, TranslateCondition) ):
+        #         englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
+        #         index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  englishToken )
+        #         # 加入至同義詞裡
+        #         if( isinstance( command, ActionCommand ) ):
+        #             command.addSynonymWord( tokenTexts[index] )
+        #     # ------------------------------------------------------
+        #     # 其他
+        #     else:
+        #         _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenTexts )
+        #     # ------------------------------------------------------   
+        #     # 有找到指令
+        #     if( command != None ):
+        #         print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
+        #         break
         
         # ========================================================================================================
-        # 每種判斷取出
+        # 參數判斷
         for condition in self._conditions:
             # ------------------------------------------------------
             # 拼音判斷
             if( isinstance(condition, PinyionCondition) ):
-                pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  pinyinToken )
+                # 確保已經產生 Pinyin 串列
+                if( pinyinToken == None ):
+                    pinyinToken = PinyionCondition.GeneratePinyinList( tokenTexts )
+
+                index, parameter = condition.execute( self._model.getParameterByStatus( self._status ), tokenTexts,  pinyinToken )
                 # 加入至相似詞裡
-                if( isinstance( command, ActionCommand ) ):
-                    command.addSimilarWord( tokenTexts[index] )
+                if( isinstance( parameter, ActionParameter ) ):
+                    parameter.addSimilarWord( tokenTexts[index] )
             # ------------------------------------------------------
             # 翻譯判斷
             elif( isinstance(condition, TranslateCondition) ):
-                englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
-                index, command = condition.execute( self._model.getCommandsByStatus( self._status ), tokenTexts,  englishToken )
+                # 確保已經產生 Translate 串列
+                if( englishToken == None ):
+                    englishToken = TranslateCondition.GenerateEnglishList( tokenTexts )
+                
+                index, parameter = condition.execute( self._model.getParameterByStatus( self._status ), tokenTexts,  englishToken )
                 # 加入至同義詞裡
-                if( isinstance( command, ActionCommand ) ):
-                    command.addSynonymWord( tokenTexts[index] )
+                if( isinstance( parameter, ActionParameter ) ):
+                    parameter.addSynonymWord( tokenTexts[index] )
             # ------------------------------------------------------
             # 其他
             else:
-                _, command = condition.execute( self._model.getCommandsByStatus( self._status ),  tokenTexts )
+                _, parameter = condition.execute( self._model.getParameterByStatus( self._status ),  tokenTexts )
             # ------------------------------------------------------   
             # 有找到指令
-            if( command != None ):
-                print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", command.getChineseName() )
+            if( parameter != None ):
+                print( "搜尋結果： (" + condition.getConditionName() + ") 最相近的字串: ", parameter.getChineseName() )
                 break
-        
-        # ========================================================================================================
 
-
-
-        self._model.saveDataToFile()
+        # self._model.saveDataToFile()
         
 
 if __name__ == "__main__":

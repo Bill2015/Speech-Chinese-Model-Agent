@@ -9,6 +9,17 @@ from google_trans_new       import google_translator
 # ======================================================================
 # 指令
 class Command():
+    TRANSLATOR = google_translator()  
+
+    def __init___(self, data:dict, name:str, countable:bool, status:Dict[str, str] ) -> None:
+        self._jsonData                  = data
+        self._chineseName:str           = name
+        self._englishName:Set[str]      = set()
+        self._countable:bool            = countable
+        self._status:Dict[str, str]     = status
+        self._romaPinyin:str            = "-".join( lazy_pinyin( self._chineseName ) )# 取得羅馬拼音
+
+
     def __init__(self,  data:dict ) -> None:
         self._jsonData                  = data
         self._chineseName:str           = self._jsonData['名稱']
@@ -49,7 +60,6 @@ class Command():
 # ======================================================================
 # 指令類別，用來存放每一個指令的資訊
 class ActionCommand(Command):
-    TRANSLATOR = google_translator()  
     def __init__(self, data:dict ) -> None:
         Command.__init__( self, data )
    
@@ -60,7 +70,7 @@ class ActionCommand(Command):
         # PPRINT.pprint( self._status )
         # 新增原有的中文翻譯字
         if( self._chineseName not in self._synonymDicts.keys() ):
-            translateWord = ActionCommand.TRANSLATOR.translate( self._chineseName ).lower().strip()
+            translateWord = Command.TRANSLATOR.translate( self._chineseName ).lower().strip()
             self._synonymDicts[ self._chineseName ] = translateWord
 
         # 取出每個同義字
@@ -68,7 +78,7 @@ class ActionCommand(Command):
             self._synonymWords.append( synKey )
             # 判斷是否還未幫同義字翻譯
             if( self._synonymDicts[ synKey ] == "" ):
-                translateWord = ActionCommand.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
+                translateWord = Command.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
                 self._synonymDicts[ synKey ] = translateWord
                 self._englishName.add( translateWord )
             # 已經有翻譯了
@@ -94,7 +104,7 @@ class ActionCommand(Command):
         Args:
             word (str): 欲加入的字
         """
-        translateWord = ActionCommand.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
+        translateWord = Command.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
         self._synonymDicts[ word ] = translateWord
         self._englishName.add( translateWord )
    
@@ -121,26 +131,27 @@ class ActionCommand(Command):
 
 
 # ======================================================================
-class Parameter():
-    def __init__(self, keyWord, jsonData) -> None:
-
+class ActionParameter(Command):
+    
+    def __init__(self, jsonData:dict, belongName:str, name:str, countable:bool, status:Dict[str, str]) -> None:
+        Command.__init___( self, jsonData, name, countable, status )
+        self._belongName:str                = belongName
         self._synonymDicts:dict             = jsonData['同義詞']
         self._similarWords:List[str]        = jsonData['相似詞']
         self._synonymWords:List[str]        = []
-        self._englishName:Set[str]          = set()
 
         # PPRINT.pprint( self._status )
         # 新增原有的中文翻譯字
-        if( keyWord not in self._synonymDicts.keys() ):
-            translateWord = ActionCommand.TRANSLATOR.translate( keyWord ).lower().strip()
-            self._synonymDicts[ keyWord ] = translateWord
-
+        if( name not in self._synonymDicts.keys() ):
+            translateWord = Command.TRANSLATOR.translate( name ).lower().strip()
+            self._synonymDicts[ name ] = translateWord
+        
         # 取出每個同義字
         for synKey in self._synonymDicts.keys():
             self._synonymWords.append( synKey )
             # 判斷是否還未幫同義字翻譯
             if( self._synonymDicts[ synKey ] == "" ):
-                translateWord = ActionCommand.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
+                translateWord = Command.TRANSLATOR.translate( synKey ).lower().strip()    # 進行翻譯
                 self._synonymDicts[ synKey ] = translateWord
                 self._englishName.add( translateWord )
             # 已經有翻譯了
@@ -164,7 +175,7 @@ class Parameter():
         Args:
             word (str): 欲加入的字
         """
-        translateWord = ActionCommand.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
+        translateWord = Command.TRANSLATOR.translate( word ).lower().strip()    # 進行翻譯
         self._synonymDicts[ word ] = translateWord
         self._englishName.add( translateWord )
 
@@ -191,21 +202,5 @@ class Parameter():
     def getSynonymDicts( self ) -> dict:
         return self._synonymDicts
 
-# ======================================================================
-class ActionParameter(Command):
-
-    # -------------------------------------------
-    def __init__(self, data:dict ) -> None:
-        Command.__init__( self, data )
-
-        self._jsonWordSet:Dict[str, str]                = self._jsonData['詞集']
-        self._parameterDict: Dict[str, Parameter]       = {}
-        # 取出每個詞集的鍵值
-        for keyWord in self._jsonWordSet.keys():
-            self._parameterDict[ keyWord ] = Parameter( keyWord, self._jsonWordSet[ keyWord ] )
-
-        pass
-
-    # -------------------------------------------
-    def getParameters( self ) -> Dict[str, Parameter]:
-        return self._parameterDict
+    def getBelong( self ) -> str:
+        return self._belongName
