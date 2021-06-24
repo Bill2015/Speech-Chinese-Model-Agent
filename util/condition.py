@@ -6,7 +6,7 @@ from typing                 import Dict, List, Tuple, Tuple
 import jieba_fast
 
 from pypinyin               import lazy_pinyin
-from Util.command           import ActionCommand, ActionParameter, Command
+from Util.command           import Command
 from google_trans_new       import google_translator  
 
 
@@ -66,7 +66,7 @@ class SynonymCondition( Condition ):
         # 取得所有指令
         for i, token in enumerate(tokens):
             for key in commandMap.keys():
-                if( isinstance(commandMap[ key ], ActionCommand) and token in commandMap[ key ].getSynonymNames() ):
+                if( token in commandMap[ key ].getSynonymNames() ):
                     return (i, commandMap[ key ])
         return (-1, None)
     
@@ -92,7 +92,7 @@ class SimilarCondition( Condition ):
         # 取得所有指令
         for i, token in enumerate(tokens):
             for key in commandMap.keys():
-                if( isinstance(commandMap[ key ], ActionCommand) and token in commandMap[ key ].getSimilarNames() ):
+                if( token in commandMap[ key ].getSimilarNames() ):
                     return (i, commandMap[ key ])
         return (-1, None)
 
@@ -124,29 +124,26 @@ class PinyionCondition( Condition ):
             pinyinLength = len( pinToken )
             # 將每個指令取出
             for key in commandMap.keys():
-                
-                # 只判斷 ActionCommand
-                if( isinstance(  commandMap[ key ], ActionCommand ) ):
-                    # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
-                    for commandRoma in [ commandMap[ key ].getRomaPinyin() ] + commandMap[ key ].getSynonymRomas():
-                        commandLength = len( commandRoma )
-                        # 假如兩者字串長度差距過大就略過，以節省運算時間
-                        if( abs( pinyinLength - commandLength ) > 5 or abs( pinyinLength * 2 - commandLength * 2 ) > 5 ):
-                            continue
-                        
-                        # 距離
-                        distance = 0
-                        if( pinyinLength < 5 or commandLength < 5 ):
-                            distance = self._levenshteinDistance( pinToken + pinToken, commandRoma + commandRoma )
-                        else:
-                            distance = self._levenshteinDistance( pinToken, commandRoma )
-                        print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken[i], roma=pinToken, key=key, roma2=commandRoma, distance=distance ) )
-                        
-                        # 找出最小距離
-                        if( distance < maximumRate ):
-                            maximumRate     = distance
-                            minimumKey      = key
-                            tokenKey        = i
+                # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+                for commandRoma in commandMap[ key ].getSynonymRomas():
+                    commandLength = len( commandRoma )
+                    # 假如兩者字串長度差距過大就略過，以節省運算時間
+                    if( abs( pinyinLength - commandLength ) > 5 or abs( pinyinLength * 2 - commandLength * 2 ) > 5 ):
+                        continue
+                    
+                    # 距離
+                    distance = 0
+                    if( pinyinLength < 5 or commandLength < 5 ):
+                        distance = self._levenshteinDistance( pinToken + pinToken, commandRoma + commandRoma )
+                    else:
+                        distance = self._levenshteinDistance( pinToken, commandRoma )
+                    print( "(拼音判斷) 字串A：{token}({roma}), 字串B:{key}({roma2}), 距離為：{distance}".format( token=originToken[i], roma=pinToken, key=key, roma2=commandRoma, distance=distance ) )
+                    
+                    # 找出最小距離
+                    if( distance < maximumRate ):
+                        maximumRate     = distance
+                        minimumKey      = key
+                        tokenKey        = i
         # 距離大於
         if( maximumRate >= 5 ):
             return (-1, None)
@@ -214,15 +211,13 @@ class TranslateCondition( Condition ):
         for i, engToken in enumerate( engTokens ):
             # 將每個指令取出
             for key in commandMap.keys():
-                # 只判斷 ActionCommand
-                if( isinstance(  commandMap[ key ], ActionCommand ) ):
-                    # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
-                    for engCommand in commandMap[ key ].getEnglishName():
+                # 取得指令拼音 (原本的詞拼音 + 同義字拼音)
+                for engCommand in commandMap[ key ].getEnglishName():
 
-                        print( "(翻譯判斷) 字串A：{token}({eng}), 字串B:{key}({eng2})".format( token=originToken[i], eng=engToken, key=commandMap[ key ].getChineseName(), eng2=engCommand ) )
-                        # 判斷是否英文字一樣
-                        if( engCommand.lower().strip() == engToken ):
-                            return (i, commandMap[ key ])
+                    print( "(翻譯判斷) 字串A：{token}({eng}), 字串B:{key}({eng2})".format( token=originToken[i], eng=engToken, key=commandMap[ key ].getChineseName(), eng2=engCommand ) )
+                    # 判斷是否英文字一樣
+                    if( engCommand.lower().strip() == engToken ):
+                        return (i, commandMap[ key ])
         return (-1, None)
 
     def getConditionName(self):

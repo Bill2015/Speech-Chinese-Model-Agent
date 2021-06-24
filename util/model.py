@@ -98,7 +98,7 @@ class Model():
             data = {}
             data['名稱']         = command.getChineseName()
             data['可量化']       = command.countable()
-            data['同義詞']       = command.getSynonymDict()
+            data['同義詞']       = command.getSynonymDicts()
             data['相似詞']       = command.getSimilarNames()
             data['狀態']         = command.getStatus()
             commandData['指令集'].append( data )    
@@ -111,7 +111,6 @@ class Model():
         belongName    = ""
 
         data = {}
-        PPRINT.pprint( self._parameters )
         for pkey, parameter in self._parameters.items():
    
             if( belongName != parameter.getBelong() ):
